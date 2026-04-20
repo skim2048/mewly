@@ -1,0 +1,20 @@
+services:
+  mewly-web:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile
+    image: mewly-web
+    container_name: mewly-web
+    restart: unless-stopped
+    ports:
+      - "${MEWLY_WEB_PORT:-5177}:5177"
+    environment:
+      - HOST_IP=${HOST_IP:-192.168.0.10}
+      - VITE_BABYCAT_HOST=${HOST_IP:-192.168.0.10}
+      - VITE_BABYCAT_API_URL=http://${HOST_IP:-192.168.0.10}:8000
+      - VITE_BABYCAT_APP_URL=http://${HOST_IP:-192.168.0.10}:8080
+      - VITE_BABYCAT_HLS_URL=http://${HOST_IP:-192.168.0.10}:8888/live/index.m3u8
+    volumes:
+      - .:/app
