@@ -1,5 +1,7 @@
 <picture>
-  <img src="./public/logo.png" alt="babycat banner">
+  <source media="(prefers-color-scheme: dark)" srcset="./public/banner-dark-theme.png">
+  <source media="(prefers-color-scheme: light)" srcset="./public/banner-light-theme.png">
+  <img src="./public/banner-light-theme.png" alt="babycat banner">
 </picture>
 
 <p align="center">
