@@ -6,8 +6,8 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const babycatHost = env.VITE_BABYCAT_HOST || env.HOST_IP || '192.168.0.10'
-  const babycatApiUrl = env.VITE_BABYCAT_API_URL || `http://${babycatHost}:8000`
-  const babycatAppUrl = env.VITE_BABYCAT_APP_URL || `http://${babycatHost}:8080`
+  const babycatApiUrl = `http://${babycatHost}:8000`
+  const babycatAppUrl = `http://${babycatHost}:8080`
 
   return {
     plugins: [
