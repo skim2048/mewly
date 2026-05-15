@@ -15,3 +15,20 @@ services:
       - VITE_BABYCAT_HOST=${HOST_IP:-192.168.0.10}
     volumes:
       - .:/app
+
+  mewly-android:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: docker/android/Dockerfile
+    image: mewly-android
+    container_name: mewly-android
+    profiles:
+      - android
+    volumes:
+      - .:/app
+      - android_node_modules:/app/node_modules
+
+volumes:
+  android_node_modules:

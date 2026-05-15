@@ -32,8 +32,16 @@ function getBabycatHost() {
   return getStoredBabycatHost() || getConfiguredBabycatHost() || getBrowserHost()
 }
 
+function getServiceUrl(path, port) {
+  return `http://${getBabycatHost()}:${port}${path}`
+}
+
 function getApiUrl(path) {
-  return `http://${getBabycatHost()}:8000${path}`
+  return getServiceUrl(path, 8000)
+}
+
+function getAppUrl(path) {
+  return getServiceUrl(path, 8080)
 }
 
 export const API_ENDPOINTS = {
@@ -61,11 +69,21 @@ export const API_ENDPOINTS = {
 }
 
 export const APP_ENDPOINTS = {
-  prompt: '/prompt',
-  ptz: '/ptz',
-  events: '/events',
-  mjpeg: '/stream',
-  vlmSwitch: '/vlm/switch',
+  get prompt() {
+    return getAppUrl('/prompt')
+  },
+  get ptz() {
+    return getAppUrl('/ptz')
+  },
+  get events() {
+    return getAppUrl('/events')
+  },
+  get mjpeg() {
+    return getAppUrl('/stream')
+  },
+  get vlmSwitch() {
+    return getAppUrl('/vlm/switch')
+  },
 }
 
 export function getBrowserHost() {

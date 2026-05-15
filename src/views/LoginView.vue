@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useTheme } from '../composables/useTheme.js'
+import { setAndroidStatusBarColor } from '../composables/useAndroidStatusBar.js'
 import { getEditableBabycatHost, setStoredBabycatHost } from '../endpoints.js'
 import ThemeToggle from '../components/ThemeToggle.vue'
 
@@ -11,6 +12,9 @@ const router = useRouter()
 const { login } = useAuth()
 const { t } = useLocale()
 const { theme } = useTheme()
+
+const LOGIN_STATUS_BAR = { light: '#ffffff', dark: '#1a1a24' }
+watch(theme, (t) => setAndroidStatusBarColor(LOGIN_STATUS_BAR[t]).catch(() => {}), { immediate: true })
 
 const username = ref('')
 const password = ref('')
@@ -31,9 +35,14 @@ async function handleLogin() {
     await login(username.value, password.value, rememberMe.value)
     router.push({ name: 'dashboard' })
   } catch (e) {
-    if (e.message.startsWith('too many attempts')) {
-      const seconds = e.message.replace('too many attempts, retry after ', '').replace('s', '')
+    const message = e?.message || ''
+    if (message.startsWith('too many attempts')) {
+      const seconds = message.replace('too many attempts, retry after ', '').replace('s', '')
       error.value = t('login.error.tooManyAttempts', { seconds })
+    } else if (message.startsWith('network failed')) {
+      error.value = t('login.error.network', { message })
+    } else if (message.startsWith('server error')) {
+      error.value = t('login.error.server', { message })
     } else {
       error.value = t('login.error.invalidCredentials')
     }

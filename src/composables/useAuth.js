@@ -314,18 +314,26 @@ export function useAuth() {
   )
 
   async function login(username, password, rememberMe = false) {
-    const res = await fetch(API_ENDPOINTS.login, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, remember_me: rememberMe }),
-    })
+    let res
+    try {
+      res = await fetch(API_ENDPOINTS.login, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, remember_me: rememberMe }),
+      })
+    } catch (e) {
+      throw new Error(`network failed: ${e?.message || 'unknown error'}`)
+    }
     if (res.status === 429) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.detail || 'too many attempts')
     }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('invalid credentials')
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      throw new Error(body.detail || 'login failed')
+      throw new Error(`server error ${res.status}: ${body.detail || body.error || res.statusText || 'login failed'}`)
     }
     const data = await res.json()
     applySession(data, rememberMe ? SESSION_KIND_PERSISTENT : SESSION_KIND_EPHEMERAL)

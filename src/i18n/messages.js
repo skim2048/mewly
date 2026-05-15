@@ -30,6 +30,14 @@ export const messages = {
     en: 'Too many login attempts. Try again after {seconds} seconds.',
     ko: '로그인 시도가 너무 많습니다. {seconds}초 후 다시 시도하세요.',
   },
+  'login.error.network': {
+    en: 'Cannot reach the backend server. {message}',
+    ko: '백엔드 서버에 연결할 수 없습니다. {message}',
+  },
+  'login.error.server': {
+    en: 'Backend login request failed. {message}',
+    ko: '백엔드 로그인 요청이 실패했습니다. {message}',
+  },
   'login.error.unsupported': { en: 'Not supported yet.', ko: '아직 지원되지 않습니다.' },
 
   'camera.field.username': { en: 'Camera ID', ko: '카메라 ID' },

@@ -1,9 +1,10 @@
 <script setup>
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useTheme } from '../composables/useTheme.js'
+import { setAndroidStatusBarColor } from '../composables/useAndroidStatusBar.js'
 
 const CameraPanel = defineAsyncComponent(() => import('../components/CameraPanel.vue'))
 const ChangePasswordPanel = defineAsyncComponent(() => import('../components/ChangePasswordPanel.vue'))
@@ -15,6 +16,9 @@ const { cameraViewState, load: loadCamera } = useCamera()
 const { logout } = useAuth()
 const { t, toggleLocale } = useLocale()
 const { theme, setTheme } = useTheme()
+
+const DASHBOARD_STATUS_BAR = { light: '#ffffff', dark: '#1a1a24' }
+watch(theme, (t) => setAndroidStatusBarColor(DASHBOARD_STATUS_BAR[t]).catch(() => {}), { immediate: true })
 
 function toggleTheme() {
   menuOpen.value = false
