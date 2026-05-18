@@ -99,3 +99,69 @@ If `android/` already exists, inspect it before recreating it.
 - hls.js
 - Capacitor
 - Docker Compose development container
+
+## Temporary Android Device Notes
+
+Install ADB on Ubuntu:
+
+```sh
+sudo apt update
+sudo apt install android-tools-adb
+adb version
+```
+
+Prepare the Android device:
+
+- Enable Developer options.
+- Enable USB debugging.
+- Connect the device over USB.
+- Approve the USB debugging prompt on the device.
+
+Check that ADB can see the device:
+
+```sh
+adb devices
+```
+
+A working device appears as `device`. If it appears as `unauthorized`, approve the prompt on the phone. If the prompt does not appear, restart ADB:
+
+```sh
+adb kill-server
+adb start-server
+adb devices
+```
+
+Install the debug APK over USB:
+
+```sh
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+If a clean reinstall is needed:
+
+```sh
+adb uninstall com.mewly.app
+adb install android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Inspect the Android WebView from desktop Chrome or Brave:
+
+```text
+chrome://inspect/#devices
+```
+
+Then:
+
+- Run `adb devices` and confirm the device is listed as `device`.
+- Launch the Mewly app on the Android device.
+- Open `chrome://inspect/#devices` on the desktop browser.
+- Find the `com.mewly.app` or `localhost/...` target.
+- Click `inspect` and check Console/Network errors.
+
+If the app does not appear in `chrome://inspect`, restart ADB and relaunch the app:
+
+```sh
+adb kill-server
+adb start-server
+adb devices
+```
