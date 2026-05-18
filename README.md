@@ -134,9 +134,7 @@ adb devices
 Build the debug APK:
 
 ```sh
-docker compose --profile android run --rm mewly-android npm run build
-docker compose --profile android run --rm mewly-android npx cap sync android
-docker compose --profile android run --rm mewly-android sh -lc 'cd android && ./gradlew assembleDebug'
+docker compose --profile android run --rm mewly-android
 ```
 
 Install the debug APK over USB:
