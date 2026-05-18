@@ -131,6 +131,16 @@ adb start-server
 adb devices
 ```
 
+Build the debug APK:
+
+```sh
+npm run build
+npx cap sync android
+cd android
+./gradlew assembleDebug
+cd ..
+```
+
 Install the debug APK over USB:
 
 ```sh
