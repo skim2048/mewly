@@ -22,8 +22,7 @@ pnpm-debug.log*
 .idea/
 .vscode/
 
-# Codex local session marker
+# etc
 .codex
-
-# Temporary files
+.claude
 tmp/
