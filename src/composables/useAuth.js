@@ -1,16 +1,25 @@
 import { computed, readonly, ref } from 'vue'
-import { API_ENDPOINTS } from '../endpoints.js'
+import { API_ENDPOINTS, persistBabycatHost } from '../endpoints.js'
 
 const WARNING_LEAD_MS = 60_000
 const AUTO_REFRESH_LEAD_MS = 60_000
 const SESSION_KIND_KEY = 'session_kind'
 const SESSION_KIND_PERSISTENT = 'persistent'
 const SESSION_KIND_EPHEMERAL = 'ephemeral'
+// @claude Why the session ended, carried across the full-page redirect to the
+// @claude login page (FR-047 notifies a session replaced by a newer login).
+// @claude sessionStorage: per-tab, so the notice shows only in the kicked tab.
+const LOGOUT_NOTICE_KEY = 'logout_notice'
+// @claude FR-006/SRS §3.2: the first login must change the initial password.
+// @claude The flag rides the login response and is persisted with the session
+// @claude so a reload keeps forcing the change until it actually happens.
+const MUST_CHANGE_KEY = 'must_change_password'
 
 const token = ref('')
 const refreshToken = ref('')
 const expiresAt = ref(0)
 const sessionKind = ref(SESSION_KIND_PERSISTENT)
+const mustChangePassword = ref(false)
 const warningVisible = ref(false)
 const remainingSeconds = ref(0)
 const sessionRemainingSeconds = ref(0)
@@ -50,6 +59,7 @@ function clearStoredSession() {
     storage.removeItem('token')
     storage.removeItem('refresh_token')
     storage.removeItem(SESSION_KIND_KEY)
+    storage.removeItem(MUST_CHANGE_KEY)
   }
 }
 
@@ -60,6 +70,9 @@ function writeStoredSession(kind, sessionToken, sessionRefreshToken) {
   storage.setItem('token', sessionToken)
   storage.setItem('refresh_token', sessionRefreshToken)
   storage.setItem(SESSION_KIND_KEY, kind)
+  // @claude Re-persisted on every session write (a refresh rotation rewrites
+  // @claude the whole set) so the forced-change state survives until cleared.
+  if (mustChangePassword.value) storage.setItem(MUST_CHANGE_KEY, '1')
 }
 
 function loadStoredSession() {
@@ -71,9 +84,10 @@ function loadStoredSession() {
       kind: storage.getItem(SESSION_KIND_KEY) || kind,
       token: storedToken,
       refreshToken: storedRefreshToken,
+      mustChange: storage.getItem(MUST_CHANGE_KEY) === '1',
     }
   }
-  return { kind: SESSION_KIND_PERSISTENT, token: '', refreshToken: '' }
+  return { kind: SESSION_KIND_PERSISTENT, token: '', refreshToken: '', mustChange: false }
 }
 
 function decodeTokenPayload(jwt) {
@@ -167,27 +181,44 @@ function redirectToLogin() {
   window.location.replace('/login')
 }
 
-function finishSession({ redirect = true } = {}) {
+function finishSession({ redirect = true, reason = '' } = {}) {
   token.value = ''
   refreshToken.value = ''
   expiresAt.value = 0
   sessionKind.value = SESSION_KIND_PERSISTENT
+  mustChangePassword.value = false
   extendingSession.value = false
   hideWarning()
   clearSessionTimers()
   clearStoredSession()
+  if (reason && hasWindow()) {
+    window.sessionStorage.setItem(LOGOUT_NOTICE_KEY, reason)
+  }
   if (redirect) {
     redirectToLogin()
   }
 }
 
-async function revokeRefreshToken(sessionRefreshToken) {
-  if (!sessionRefreshToken) return
+function consumeLogoutNotice() {
+  if (!hasWindow()) return ''
+  const notice = window.sessionStorage.getItem(LOGOUT_NOTICE_KEY) || ''
+  window.sessionStorage.removeItem(LOGOUT_NOTICE_KEY)
+  return notice
+}
+
+async function revokeSessionTokens(sessionRefreshToken, sessionAccessToken) {
+  // @claude Ephemeral sessions carry no refresh token (FR-002), so the access
+  // @claude token identifies the user for the server-side epoch bump (FR-003).
+  if (!sessionRefreshToken && !sessionAccessToken) return
+  const headers = { 'Content-Type': 'application/json' }
+  if (sessionAccessToken) {
+    headers.Authorization = `Bearer ${sessionAccessToken}`
+  }
   try {
     await fetch(API_ENDPOINTS.logout, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: sessionRefreshToken }),
+      headers,
+      body: JSON.stringify({ refresh_token: sessionRefreshToken || null }),
     })
   } catch {
     // @claude Best-effort server-side logout; local cleanup is still required.
@@ -206,11 +237,12 @@ function applySession(data, kind = sessionKind.value) {
 }
 
 async function terminateSession(options = {}) {
-  const { redirect = true, revoke = true } = options
+  const { redirect = true, revoke = true, reason = '' } = options
   const sessionRefreshToken = refreshToken.value
-  finishSession({ redirect })
+  const sessionAccessToken = token.value
+  finishSession({ redirect, reason })
   if (revoke) {
-    await revokeRefreshToken(sessionRefreshToken)
+    await revokeSessionTokens(sessionRefreshToken, sessionAccessToken)
   }
 }
 
@@ -288,6 +320,7 @@ function initializeSession() {
   token.value = stored.token
   refreshToken.value = stored.refreshToken
   sessionKind.value = stored.kind
+  mustChangePassword.value = !!stored.mustChange
 
   if (!token.value) {
     clearSessionTimers()
@@ -296,7 +329,16 @@ function initializeSession() {
 
   expiresAt.value = resolveExpiryMs(token.value)
   if (!expiresAt.value || expiresAt.value <= Date.now()) {
-    void terminateSession({ redirect: false, revoke: true })
+    // @claude An expired access token does not end a kept-login session:
+    // @claude the refresh token carries it across revisits (FR-002). Only a
+    // @claude session with no refresh token ends here (FR-001). A network
+    // @claude failure leaves the session intact — the next request's 401
+    // @claude path retries the refresh.
+    if (refreshToken.value) {
+      refreshAccessToken().catch(() => {})
+    } else {
+      void terminateSession({ redirect: false, revoke: true })
+    }
     return
   }
 
@@ -321,21 +363,24 @@ export function useAuth() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, remember_me: rememberMe }),
       })
-    } catch (e) {
-      throw new Error(`network failed: ${e?.message || 'unknown error'}`)
+    } catch {
+      // @claude Network-level failure: the backend host was never reached. Do not
+      // @claude persist it so the operator can correct the host and retry.
+      throw new Error('host unreachable')
     }
+    // @claude The host responded (even on 401/429), so it is reachable — remember it.
+    persistBabycatHost()
     if (res.status === 429) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.detail || 'too many attempts')
     }
-    if (res.status === 401 || res.status === 403) {
-      throw new Error('invalid credentials')
-    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      throw new Error(`server error ${res.status}: ${body.detail || body.error || res.statusText || 'login failed'}`)
+      throw new Error(body.detail || 'login failed')
     }
     const data = await res.json()
+    // @claude Set before applySession so writeStoredSession persists the flag.
+    mustChangePassword.value = !!data.must_change_password
     applySession(data, rememberMe ? SESSION_KIND_PERSISTENT : SESSION_KIND_EPHEMERAL)
   }
 
@@ -356,6 +401,7 @@ export function useAuth() {
     accessToken: readonly(token),
     storedRefreshToken: readonly(refreshToken),
     sessionExpiresAt: readonly(expiresAt),
+    mustChangePassword: readonly(mustChangePassword),
     warningVisible: readonly(warningVisible),
     remainingSeconds: readonly(remainingSeconds),
     sessionRemainingSeconds: readonly(sessionRemainingSeconds),
@@ -368,5 +414,6 @@ export function useAuth() {
     refreshAccessToken,
     extendSession,
     getToken,
+    consumeLogoutNotice,
   }
 }

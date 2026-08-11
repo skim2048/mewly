@@ -1,20 +1,13 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
-import { useTheme } from '../composables/useTheme.js'
-import { setAndroidStatusBarColor } from '../composables/useAndroidStatusBar.js'
-import { getEditableBabycatHost, setStoredBabycatHost } from '../endpoints.js'
-import ThemeToggle from '../components/ThemeToggle.vue'
+import { getEditableBabycatHost, applyBabycatHost } from '../endpoints.js'
 
 const router = useRouter()
-const { login } = useAuth()
+const { login, consumeLogoutNotice } = useAuth()
 const { t } = useLocale()
-const { theme } = useTheme()
-
-const LOGIN_STATUS_BAR = { light: '#ffffff', dark: '#1a1a24' }
-watch(theme, (t) => setAndroidStatusBarColor(LOGIN_STATUS_BAR[t]).catch(() => {}), { immediate: true })
 
 const username = ref('')
 const password = ref('')
@@ -23,26 +16,29 @@ const rememberMe = ref(false)
 const error = ref('')
 const loading = ref(false)
 
-function handleBabycatHostInput() {
-  babycatHost.value = setStoredBabycatHost(babycatHost.value)
+// @claude Why the previous session ended (FR-047) — read once on arrival; the
+// @claude key is kept so the template retranslates when the locale changes.
+const logoutNotice = consumeLogoutNotice()
+const noticeKey = logoutNotice === 'sessionReplaced' ? 'login.notice.sessionReplaced' : ''
+
+// @claude Reflect the normalized host back into the field on blur; does not persist.
+function normalizeHostField() {
+  babycatHost.value = applyBabycatHost(babycatHost.value)
 }
 
 async function handleLogin() {
   error.value = ''
-  handleBabycatHostInput()
+  applyBabycatHost(babycatHost.value)
   loading.value = true
   try {
     await login(username.value, password.value, rememberMe.value)
     router.push({ name: 'dashboard' })
   } catch (e) {
-    const message = e?.message || ''
-    if (message.startsWith('too many attempts')) {
-      const seconds = message.replace('too many attempts, retry after ', '').replace('s', '')
+    if (e.message === 'host unreachable') {
+      error.value = t('login.error.hostUnreachable')
+    } else if (e.message.startsWith('too many attempts')) {
+      const seconds = e.message.replace('too many attempts, retry after ', '').replace('s', '')
       error.value = t('login.error.tooManyAttempts', { seconds })
-    } else if (message.startsWith('network failed')) {
-      error.value = t('login.error.network', { message })
-    } else if (message.startsWith('server error')) {
-      error.value = t('login.error.server', { message })
     } else {
       error.value = t('login.error.invalidCredentials')
     }
@@ -53,166 +49,129 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="login-page">
-    <ThemeToggle class="theme-toggle-fixed" />
-    <form class="login-form" @submit.prevent="handleLogin" novalidate>
-      <img :src="theme === 'dark' ? '/banner-dark-theme.png' : '/banner-light-theme.png'" alt="Babycat" class="login-banner" />
+  <form class="login-page" @submit.prevent="handleLogin" novalidate>
+    <div class="login-head">
+      <h1 class="login-title">{{ t('login.title') }}</h1>
+      <p class="login-sub">{{ t('login.subtitle') }}</p>
+    </div>
 
-      <input
-        v-model="username"
-        type="text"
-        :placeholder="t('login.usernamePlaceholder')"
-        class="login-input"
-        autocomplete="username"
-        required
-      />
-      <input
-        v-model="password"
-        type="password"
-        :placeholder="t('login.passwordPlaceholder')"
-        class="login-input"
-        autocomplete="current-password"
-        required
-      />
-      <input
-        v-model="babycatHost"
-        type="text"
-        :placeholder="t('login.backendHostPlaceholder')"
-        class="login-input"
-        autocomplete="off"
-        spellcheck="false"
-        @change="handleBabycatHostInput"
-      />
+    <div v-if="error || noticeKey" class="form-note login-notice">
+      <i class="ph ph-warning-circle"></i>
+      <span>{{ error || t(noticeKey) }}</span>
+    </div>
 
-      <div class="login-options">
-        <label class="login-remember">
-          <input v-model="rememberMe" type="checkbox" />
-          <span>{{ t('login.rememberMe') }}</span>
-        </label>
-        <a class="login-find" @click.prevent="error = t('login.error.unsupported')">{{ t('login.findAccount') }}</a>
-      </div>
-
-      <hr class="login-divider" />
-
-      <button type="submit" class="login-btn" :disabled="loading">
-        {{ loading ? t('login.loading') : t('login.submit') }}
+    <div class="login-fields">
+      <label class="form-field on-bg">{{ t('login.usernamePlaceholder') }}
+        <input v-model="username" type="text" autocomplete="username" required />
+      </label>
+      <label class="form-field on-bg">{{ t('login.passwordPlaceholder') }}
+        <input v-model="password" type="password" autocomplete="current-password" required />
+      </label>
+      <label class="form-field on-bg">{{ t('login.backendHostPlaceholder') }}
+        <input v-model="babycatHost" type="text" autocomplete="off" spellcheck="false" @change="normalizeHostField" />
+      </label>
+      <button type="button" class="login-remember" @click="rememberMe = !rememberMe">
+        <span class="login-check" :class="{ on: rememberMe }"><svg v-if="rememberMe" class="check-glyph" viewBox="0 0 12 12" aria-hidden="true"><polyline points="2.5,6.5 5,9 9.5,3.5" /></svg></span>
+        {{ t('login.rememberMe') }}
       </button>
+    </div>
 
-      <p v-if="error" class="login-error">{{ error }}</p>
-    </form>
-  </div>
+    <button type="submit" class="login-submit" :disabled="loading">
+      {{ loading ? t('login.loading') : t('login.submit') }}
+    </button>
+  </form>
 </template>
 
 <style scoped>
+.check-glyph {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .login-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-surface);
-  padding: 1.5rem;
-}
-
-.login-form {
-  width: min(90%, 25rem);
+  background: var(--color-bg);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  justify-content: center;
+  padding: 56px 24px 40px;
+  gap: 22px;
 }
 
-.login-banner {
-  display: block;
-  width: 100%;
-  height: auto;
-  margin-bottom: 0;
-}
-
-.login-input {
-  width: 100%;
-  padding: 0.65rem 0.75rem;
-  font-size: 0.85rem;
-  border: 1px solid var(--border-input);
-  border-radius: var(--radius);
-  background: var(--input-bg);
-  color: var(--text-1);
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.login-input::placeholder {
-  color: var(--text-4);
-}
-.login-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-shadow);
-}
-
-.login-options {
+.login-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0.5rem;
+  flex-direction: column;
+  gap: 8px;
 }
+.login-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 10px;
+  line-height: 1.2;
+}
+.login-sub {
+  font-size: 13.5px;
+  color: var(--color-neutral-400);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.login-notice {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .login-remember {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--text-2);
-  cursor: pointer;
-  user-select: none;
-}
-.login-find {
-  font-size: 0.75rem;
-  color: var(--text-3);
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-}
-.login-find:hover {
-  color: var(--text-1);
-}
-.login-remember input[type="checkbox"] {
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-}
-
-.login-divider {
+  gap: 9px;
+  height: 44px;
+  background: none;
   border: none;
-  border-top: 1px solid var(--border);
-  margin: 0.25rem 0;
+  padding: 0;
+  color: var(--color-neutral-300);
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.login-check {
+  width: 18px; height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--color-neutral-700);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  color: var(--color-accent);
+}
+.login-check.on {
+  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  border-color: var(--color-accent);
 }
 
-.login-btn {
-  width: 100%;
-  padding: 0.65rem;
-  font-size: 0.9rem;
+/* 시안: 모바일 제출 버튼은 액센트 채움 알약 */
+.login-submit {
+  height: 56px;
+  border-radius: 100px;
+  border: none;
+  background: var(--color-accent);
+  color: #12131c;
+  font-size: 16px;
   font-weight: 700;
-  background: var(--text-1);
-  color: var(--bg-surface);
-  border: none;
-  border-radius: var(--radius);
+  font-family: inherit;
   cursor: pointer;
-  transition: opacity 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
 }
-.login-btn:hover {
-  opacity: 0.85;
-}
-.login-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.login-error {
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--danger);
-}
-
-.theme-toggle-fixed {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 10;
-}
+.login-submit:disabled { opacity: 0.5; cursor: default; }
 </style>

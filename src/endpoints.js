@@ -1,7 +1,7 @@
-// Route ownership map for the dashboard.
-// `api` owns authentication and persisted client-facing REST behavior.
-// `app` owns runtime control, live state, and MJPEG/SSE endpoints.
-// MediaMTX owns HLS/WebRTC transport endpoints.
+// Route map for the dashboard.
+// The router (port 8000) is the single entry point for everything —
+// control, SSE/MJPEG relays, and the HLS/WHEP streaming relays.
+// Only WebRTC media (UDP 8189) bypasses it.
 
 const BABYCAT_HOST_STORAGE_KEY = 'babycat_host'
 
@@ -24,24 +24,17 @@ function getStoredBabycatHost() {
   return normalizeHost(window.localStorage.getItem(BABYCAT_HOST_STORAGE_KEY))
 }
 
-function getConfiguredBabycatHost() {
-  return normalizeHost(import.meta.env.VITE_BABYCAT_HOST)
-}
+// @claude Host typed on the login page for the current page load. Kept in memory so the
+// @claude login request can target it before the host is known to be reachable;
+// @claude persistBabycatHost() writes it to localStorage only after the backend responds.
+let sessionBabycatHost = ''
 
 function getBabycatHost() {
-  return getStoredBabycatHost() || getConfiguredBabycatHost() || getBrowserHost()
-}
-
-function getServiceUrl(path, port) {
-  return `http://${getBabycatHost()}:${port}${path}`
+  return sessionBabycatHost || getStoredBabycatHost() || getBrowserHost()
 }
 
 function getApiUrl(path) {
-  return getServiceUrl(path, 8000)
-}
-
-function getAppUrl(path) {
-  return getServiceUrl(path, 8080)
+  return `http://${getBabycatHost()}:8000${path}`
 }
 
 export const API_ENDPOINTS = {
@@ -70,19 +63,33 @@ export const API_ENDPOINTS = {
 
 export const APP_ENDPOINTS = {
   get prompt() {
-    return getAppUrl('/prompt')
+    return getApiUrl('/prompt')
   },
   get ptz() {
-    return getAppUrl('/ptz')
+    return getApiUrl('/ptz')
   },
+  get analysisStart() {
+    return getApiUrl('/analysis/start')
+  },
+  get analysisStop() {
+    return getApiUrl('/analysis/stop')
+  },
+  get streamingStart() {
+    return getApiUrl('/streaming/start')
+  },
+  get streamingStop() {
+    return getApiUrl('/streaming/stop')
+  },
+  // @claude Live state SSE. The router path is /state (its /events carries the
+  // @claude stored event history).
   get events() {
-    return getAppUrl('/events')
+    return getApiUrl('/state')
   },
   get mjpeg() {
-    return getAppUrl('/stream')
+    return getApiUrl('/stream')
   },
   get vlmSwitch() {
-    return getAppUrl('/vlm/switch')
+    return getApiUrl('/vlm/switch')
   },
 }
 
@@ -91,30 +98,40 @@ export function getBrowserHost() {
 }
 
 export function getEditableBabycatHost() {
-  return getStoredBabycatHost() || getConfiguredBabycatHost() || (hasWindow() ? getBrowserHost() : '')
+  return sessionBabycatHost || getStoredBabycatHost() || (hasWindow() ? getBrowserHost() : '')
 }
 
-export function setStoredBabycatHost(host) {
-  if (!hasWindow()) return ''
-  const normalizedHost = normalizeHost(host)
-  if (normalizedHost) {
-    window.localStorage.setItem(BABYCAT_HOST_STORAGE_KEY, normalizedHost)
+// @claude Activate a host for the current page load without persisting it. The login
+// @claude request targets this value; call persistBabycatHost() once the backend responds.
+export function applyBabycatHost(host) {
+  sessionBabycatHost = normalizeHost(host)
+  return sessionBabycatHost
+}
+
+// @claude Persist the active host once the backend has responded (i.e. the host is
+// @claude reachable). An empty host clears the stored value so resolution falls back
+// @claude to the browser host.
+export function persistBabycatHost() {
+  if (!hasWindow()) return
+  if (sessionBabycatHost) {
+    window.localStorage.setItem(BABYCAT_HOST_STORAGE_KEY, sessionBabycatHost)
   } else {
     window.localStorage.removeItem(BABYCAT_HOST_STORAGE_KEY)
   }
-  return normalizedHost
 }
 
 export function getStreamHost() {
   return getBabycatHost()
 }
 
+// @claude HLS and WHEP go through the router relay (single entry). Only the
+// @claude WebRTC media itself flows directly from the streamer (UDP 8189).
 export function getHlsUrl(host = getStreamHost()) {
-  return `http://${host}:8888/live/index.m3u8`
+  return `http://${host}:8000/live/hls/index.m3u8`
 }
 
 export function getWhepUrl(host = getStreamHost()) {
-  return `http://${host}:8889/live/whep`
+  return `http://${host}:8000/live/whep`
 }
 
 export function getEventsUrl(token) {

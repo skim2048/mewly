@@ -1,7 +1,8 @@
-import { computed, reactive, readonly, watch } from 'vue'
+import { computed, effectScope, reactive, readonly, watch } from 'vue'
 import { useAuth } from './useAuth.js'
+import { authFetch } from './useFetch.js'
 import { hasMessage, t } from './useLocale.js'
-import { getEventsUrl } from '../endpoints.js'
+import { API_ENDPOINTS, getEventsUrl } from '../endpoints.js'
 
 const state = reactive({
   uptime: '-',
@@ -31,11 +32,13 @@ const state = reactive({
   gpu_load: 0,
   cpu_temp: 0,
   gpu_temp: 0,
-  // @claude PTZ
+  // @claude Streaming (FR-048)
+  streaming_active: false,
+  profile_pending: false,
+  // @claude PTZ — ptz_presets lists the slot numbers holding a saved position.
   ptz_pan: null,
   ptz_tilt: null,
-  ptz_saved_pan: null,
-  ptz_saved_tilt: null,
+  ptz_presets: [],
   // @claude Prompt
   inference_prompt: '',
   trigger_keywords: '',
@@ -82,10 +85,11 @@ function resetState() {
   state.gpu_load = 0
   state.cpu_temp = 0
   state.gpu_temp = 0
+  state.streaming_active = false
+  state.profile_pending = false
   state.ptz_pan = null
   state.ptz_tilt = null
-  state.ptz_saved_pan = null
-  state.ptz_saved_tilt = null
+  state.ptz_presets = []
   state.inference_prompt = ''
   state.trigger_keywords = ''
   state.clip_count = 0
@@ -119,6 +123,20 @@ function scheduleReconnect(token) {
   backoff = Math.min(backoff * 2, MAX_BACKOFF)
 }
 
+// @claude EventSource cannot expose the 401 a replaced session receives on
+// @claude reconnect (FR-047), so a broken stream triggers a throttled probe
+// @claude through authFetch, whose 401 handling classifies and notifies.
+const PROBE_MIN_INTERVAL_MS = 5000
+let lastProbeAt = 0
+function probeSession() {
+  const now = Date.now()
+  if (now - lastProbeAt < PROBE_MIN_INTERVAL_MS) return
+  lastProbeAt = now
+  authFetch(API_ENDPOINTS.camera).catch(() => {
+    // @claude Network-level failure — reconnect backoff already covers it.
+  })
+}
+
 function openConnection(token) {
   closeConnection()
   if (!token) {
@@ -142,6 +160,7 @@ function openConnection(token) {
 
   eventSource.onerror = () => {
     closeConnection()
+    probeSession()
     scheduleReconnect(token)
   }
 }
@@ -150,16 +169,21 @@ function connect() {
   if (started) return
   started = true
 
-  const { accessToken } = useAuth()
-  watch(accessToken, (token) => {
-    backoff = 1000
-    if (!token) {
-      closeConnection()
-      resetState()
-      return
-    }
-    openConnection(token)
-  }, { immediate: true })
+  // @claude The watcher lives in a detached scope: registered inside a
+  // @claude component it would die with that component's unmount while the
+  // @claude started flag stays true, silently ending reconnection.
+  effectScope(true).run(() => {
+    const { accessToken } = useAuth()
+    watch(accessToken, (token) => {
+      backoff = 1000
+      if (!token) {
+        closeConnection()
+        resetState()
+        return
+      }
+      openConnection(token)
+    }, { immediate: true })
+  })
 }
 
 export function useSSE() {

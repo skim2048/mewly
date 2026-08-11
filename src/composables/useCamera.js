@@ -21,7 +21,6 @@ const configured = ref(false)
 const connecting = ref(false)
 const connected = ref(false)
 const status = ref('')
-const reconnectKey = ref(0)  // @claude Bumped on successful profile save so LiveStream auto-reconnects.
 let loaded = false
 
 const ptzEnabled = computed(() => config.onvif_port != null)
@@ -100,7 +99,6 @@ async function save() {
       config.password = ''
       config.password_set = true
       status.value = ''
-      reconnectKey.value += 1
       return true
     } else {
       status.value = cameraErrorMessage(data, t('camera.error.saveGeneric'))
@@ -128,7 +126,7 @@ function disconnect() {
 
 export function useCamera() {
   return {
-    config, configured, connecting, connected, status, reconnectKey,
+    config, configured, connecting, connected, status,
     ptzEnabled, cameraViewState,
     load, save, disconnect, setConnected, setDisconnected,
   }

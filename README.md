@@ -2,26 +2,28 @@
 
 `mewly` is the Android-oriented client project for a pet abnormal-behavior recognition flow backed by `babycat`.
 
-The current baseline is a full copy of `../babycat/web/src`, adapted to run inside the `mewly` project. This keeps the existing `babycat` debugging dashboard contracts working first, before the UI is reshaped for mobile and Android.
+The current baseline is a full copy of `../babycat/client/android/src` taken at `babycat` commit `02e63c9` (the Capacitor Android client with the Nocturne UI). `mewly` keeps its own toolchain and packaging on top of that copy.
 
 ## Project Relationship
 
 - `../babycat` owns the edge-AI backend: RTSP camera input, VLM inference, event detection, clip recording, API, and streaming services.
-- `../babycat/web` is a debugging and operations dashboard for `babycat`. It is not the final user app.
-- `mewly` starts from the `babycat/web` contract baseline, then moves toward a mobile/Android client.
-- `../wally` may provide UI and product-flow hints later, but `babycat` remains the source of truth for runtime API behavior.
+- `../babycat/client/android` is the upstream Capacitor Android client. `mewly` re-forks from it and customizes.
+- `babycat` remains the source of truth for runtime API behavior.
 
 ## Current Baseline
 
-The PC browser baseline has been checked against a running `babycat` stack:
+Copied from upstream at `babycat` `02e63c9`:
 
-- login through `POST /api/login`
-- dashboard entry
-- `babycat` API/App proxy routing through Vite
-- copied `babycat/web` source and public assets
-- production build with `npm run build`
+- `src/`, `index.html`, and the `fonts/` and `icons/` public assets
+- Nocturne design system, sheet-based mobile UI (`MainView`, `LiveMobile`, `ClipsMobile`)
+- host resolution from the login screen (session -> stored -> browser); no build-time host injection in app code
 
-The next planned step is a minimal Android build and real-device network check before large mobile UI changes.
+Kept as `mewly` customizations:
+
+- toolchain: Capacitor 8, Vite 7, vue-router 5, hls.js 1.6 (upstream uses Capacitor 7 / Vite 6 / vue-router 4)
+- `capacitor.config.json` (`com.mewly.app`), the Capacitor 8 `android/` project, and the Docker Android build
+- `src/composables/useAndroidStatusBar.js`, wired app-wide in `App.vue`
+- `mewly` branding: `index.html` title and banner images in `public/`
 
 ## Development
 
@@ -59,37 +61,9 @@ docker compose up --build
 
 ## Babycat Routing
 
-During Vite development, `mewly` uses proxy routes derived from `VITE_BABYCAT_HOST` or `HOST_IP`.
-The app itself also uses one editable babycat host value and derives service ports from it:
+The app builds every request from the host entered on the login screen, resolved as session -> stored -> browser host. The `babycat` router (port 8000) is the single entry point for control, SSE/MJPEG relays, and the HLS/WHEP streaming relays; only WebRTC media (UDP 8189) bypasses it.
 
-- `/api`, `/clips`, `/camera` -> `http://<HOST_IP>:8000`
-- `/events`, `/prompt`, `/ptz`, `/vlm` -> `http://<HOST_IP>:8080`
-- HLS -> `http://<HOST_IP>:8888/live/index.m3u8`
-- WebRTC -> `http://<HOST_IP>:8889/live/whep`
-
-Android builds do not rely on the Vite dev proxy in the same way. Verify Android networking before rewriting the UI.
-
-## Android Check
-
-The first Android goal is not mobile polish. It is to run the current copied UI on a device and verify:
-
-- app launch
-- login
-- protected API calls such as `/camera` or `/clips`
-- SSE connection
-- HLS or WebRTC playback
-- clip playback
-
-Suggested commands:
-
-```sh
-npm run build
-npx cap add android
-npx cap sync android
-npx cap open android
-```
-
-If `android/` already exists, inspect it before recreating it.
+The Vite dev proxy in `vite.config.js` predates this contract: the app issues absolute URLs to port 8000, so the proxy carries no traffic and its port map (8000/8080) no longer matches the backend. It is kept for now and is a candidate for removal.
 
 ## Stack
 

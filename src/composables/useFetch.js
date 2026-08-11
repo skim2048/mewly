@@ -19,6 +19,20 @@ export function authFetch(url, options = {}) {
 
   return fetch(url, { ...options, headers }).then(async (res) => {
     if (res.status === 401) {
+      let detail = ''
+      try {
+        detail = (await res.clone().json())?.detail || ''
+      } catch {
+        // @claude Non-JSON 401 body — treated as an ordinary expiry.
+      }
+      if (detail === 'token revoked') {
+        // @claude Epoch mismatch: a newer login replaced this session (FR-047).
+        // @claude No refresh attempt — the refresh token is revoked with it.
+        // @claude revoke:false — this session's credentials are already dead,
+        // @claude and a logout call with them must not touch the new session.
+        logout({ redirect: true, revoke: false, reason: 'sessionReplaced' })
+        return res
+      }
       const refreshed = isPersistentSession.value ? await refreshAccessToken() : false
       if (refreshed) {
         const retryHeaders = { ...options.headers, Authorization: `Bearer ${getToken()}` }
