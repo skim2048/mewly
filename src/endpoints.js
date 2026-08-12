@@ -3,7 +3,7 @@
 // control, SSE/MJPEG relays, and the HLS/WHEP streaming relays.
 // Only WebRTC media (UDP 8189) bypasses it.
 
-const BABYCAT_HOST_STORAGE_KEY = 'babycat_host'
+const MEWLY_HOST_STORAGE_KEY = 'mewly_host'
 
 function hasWindow() {
   return typeof window !== 'undefined'
@@ -19,22 +19,22 @@ function normalizeHost(value) {
   }
 }
 
-function getStoredBabycatHost() {
+function getStoredMewlyHost() {
   if (!hasWindow()) return ''
-  return normalizeHost(window.localStorage.getItem(BABYCAT_HOST_STORAGE_KEY))
+  return normalizeHost(window.localStorage.getItem(MEWLY_HOST_STORAGE_KEY))
 }
 
 // @claude Host typed on the login page for the current page load. Kept in memory so the
 // @claude login request can target it before the host is known to be reachable;
-// @claude persistBabycatHost() writes it to localStorage only after the backend responds.
-let sessionBabycatHost = ''
+// @claude persistMewlyHost() writes it to localStorage only after the backend responds.
+let sessionMewlyHost = ''
 
-function getBabycatHost() {
-  return sessionBabycatHost || getStoredBabycatHost() || getBrowserHost()
+function getMewlyHost() {
+  return sessionMewlyHost || getStoredMewlyHost() || getBrowserHost()
 }
 
 function getApiUrl(path) {
-  return `http://${getBabycatHost()}:8000${path}`
+  return `http://${getMewlyHost()}:8000${path}`
 }
 
 export const API_ENDPOINTS = {
@@ -97,31 +97,31 @@ export function getBrowserHost() {
   return window.location.hostname
 }
 
-export function getEditableBabycatHost() {
-  return sessionBabycatHost || getStoredBabycatHost() || (hasWindow() ? getBrowserHost() : '')
+export function getEditableMewlyHost() {
+  return sessionMewlyHost || getStoredMewlyHost() || (hasWindow() ? getBrowserHost() : '')
 }
 
 // @claude Activate a host for the current page load without persisting it. The login
-// @claude request targets this value; call persistBabycatHost() once the backend responds.
-export function applyBabycatHost(host) {
-  sessionBabycatHost = normalizeHost(host)
-  return sessionBabycatHost
+// @claude request targets this value; call persistMewlyHost() once the backend responds.
+export function applyMewlyHost(host) {
+  sessionMewlyHost = normalizeHost(host)
+  return sessionMewlyHost
 }
 
 // @claude Persist the active host once the backend has responded (i.e. the host is
 // @claude reachable). An empty host clears the stored value so resolution falls back
 // @claude to the browser host.
-export function persistBabycatHost() {
+export function persistMewlyHost() {
   if (!hasWindow()) return
-  if (sessionBabycatHost) {
-    window.localStorage.setItem(BABYCAT_HOST_STORAGE_KEY, sessionBabycatHost)
+  if (sessionMewlyHost) {
+    window.localStorage.setItem(MEWLY_HOST_STORAGE_KEY, sessionMewlyHost)
   } else {
-    window.localStorage.removeItem(BABYCAT_HOST_STORAGE_KEY)
+    window.localStorage.removeItem(MEWLY_HOST_STORAGE_KEY)
   }
 }
 
 export function getStreamHost() {
-  return getBabycatHost()
+  return getMewlyHost()
 }
 
 // @claude HLS and WHEP go through the router relay (single entry). Only the

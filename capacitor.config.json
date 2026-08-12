@@ -1,6 +1,6 @@
 {
-  "appId": "com.mewly.app",
-  "appName": "mewly",
+  "appId": "app.mewly.client",
+  "appName": "Mewly",
   "webDir": "dist",
   "server": {
     "androidScheme": "http",

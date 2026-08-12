@@ -1,5 +1,5 @@
 import { computed, readonly, ref } from 'vue'
-import { API_ENDPOINTS, persistBabycatHost } from '../endpoints.js'
+import { API_ENDPOINTS, persistMewlyHost } from '../endpoints.js'
 
 const WARNING_LEAD_MS = 60_000
 const AUTO_REFRESH_LEAD_MS = 60_000
@@ -369,7 +369,7 @@ export function useAuth() {
       throw new Error('host unreachable')
     }
     // @claude The host responded (even on 401/429), so it is reachable — remember it.
-    persistBabycatHost()
+    persistMewlyHost()
     if (res.status === 429) {
       const body = await res.json().catch(() => ({}))
       throw new Error(body.detail || 'too many attempts')

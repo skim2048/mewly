@@ -1,28 +1,27 @@
-# Dependencies
-node_modules/
-
-# Build output
-dist/
-
-# Local environment
-.env
-.env.local
-.env.*.local
-
-# Logs
-logs/
+# Node
+node_modules
+dist
+dist-ssr
+coverage
+*.local
+logs
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+*.timestamp-*-*.mjs
 
-# Editor and OS files
+# OS
 .DS_Store
-.idea/
-.vscode/
 
-# etc
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.sw?
+
+# Etc.
+.env
+.env.*
+!.env.example
 .codex
 .claude
 tmp/

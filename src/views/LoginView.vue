@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
-import { getEditableBabycatHost, applyBabycatHost } from '../endpoints.js'
+import { getEditableMewlyHost, applyMewlyHost } from '../endpoints.js'
 
 const router = useRouter()
 const { login, consumeLogoutNotice } = useAuth()
@@ -11,7 +11,7 @@ const { t } = useLocale()
 
 const username = ref('')
 const password = ref('')
-const babycatHost = ref(getEditableBabycatHost())
+const mewlyHost = ref(getEditableMewlyHost())
 const rememberMe = ref(false)
 const error = ref('')
 const loading = ref(false)
@@ -23,12 +23,12 @@ const noticeKey = logoutNotice === 'sessionReplaced' ? 'login.notice.sessionRepl
 
 // @claude Reflect the normalized host back into the field on blur; does not persist.
 function normalizeHostField() {
-  babycatHost.value = applyBabycatHost(babycatHost.value)
+  mewlyHost.value = applyMewlyHost(mewlyHost.value)
 }
 
 async function handleLogin() {
   error.value = ''
-  applyBabycatHost(babycatHost.value)
+  applyMewlyHost(mewlyHost.value)
   loading.value = true
   try {
     await login(username.value, password.value, rememberMe.value)
@@ -52,7 +52,6 @@ async function handleLogin() {
   <form class="login-page" @submit.prevent="handleLogin" novalidate>
     <div class="login-head">
       <h1 class="login-title">{{ t('login.title') }}</h1>
-      <p class="login-sub">{{ t('login.subtitle') }}</p>
     </div>
 
     <div v-if="error || noticeKey" class="form-note login-notice">
@@ -68,7 +67,7 @@ async function handleLogin() {
         <input v-model="password" type="password" autocomplete="current-password" required />
       </label>
       <label class="form-field on-bg">{{ t('login.backendHostPlaceholder') }}
-        <input v-model="babycatHost" type="text" autocomplete="off" spellcheck="false" @change="normalizeHostField" />
+        <input v-model="mewlyHost" type="text" autocomplete="off" spellcheck="false" @change="normalizeHostField" />
       </label>
       <button type="button" class="login-remember" @click="rememberMe = !rememberMe">
         <span class="login-check" :class="{ on: rememberMe }"><svg v-if="rememberMe" class="check-glyph" viewBox="0 0 12 12" aria-hidden="true"><polyline points="2.5,6.5 5,9 9.5,3.5" /></svg></span>
@@ -115,13 +114,6 @@ async function handleLogin() {
   margin-top: 10px;
   line-height: 1.2;
 }
-.login-sub {
-  font-size: 13.5px;
-  color: var(--color-neutral-400);
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
 .login-notice {
   font-size: 13px;
   line-height: 1.45;

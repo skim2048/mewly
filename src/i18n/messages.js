@@ -47,10 +47,6 @@ export const messages = {
     ko: '추론 보고가 아직 없습니다.',
   },
   'login.title': { en: 'Sign-in', ko: '로그인' },
-  'login.subtitle': {
-    en: 'Connect to the Babycat backend.',
-    ko: '베이비캣 백엔드에 연결합니다.',
-  },
   'login.usernamePlaceholder': { en: 'User ID', ko: '아이디' },
   'login.passwordPlaceholder': { en: 'Password', ko: '비밀번호' },
   'login.backendHostPlaceholder': { en: 'Backend address', ko: '백엔드 주소' },

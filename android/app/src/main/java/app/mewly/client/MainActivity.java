@@ -1,4 +1,4 @@
-package com.mewly.app;
+package app.mewly.client;
 
 import com.getcapacitor.BridgeActivity;
 

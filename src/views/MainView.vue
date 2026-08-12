@@ -116,7 +116,7 @@ onMounted(loadCamera)
         <button class="drawer-toggle" :title="t('dashboard.sidebarShow')" @click="drawerOpen = true">
           <i class="ph ph-list"></i>
         </button>
-        Babycat
+        Mewly
       </span>
       <div v-if="activeTab === 'video'" class="topbar-right">
         <span v-if="showSessionRemaining" class="session-chip">
@@ -168,7 +168,7 @@ onMounted(loadCamera)
             <button class="drawer-toggle" :title="t('dashboard.sidebarHide')" @click="drawerOpen = false">
               <i class="ph ph-list"></i>
             </button>
-            Babycat
+            Mewly
           </div>
           <button
             v-for="tab in drawerTabs"

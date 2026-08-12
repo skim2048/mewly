@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">mewly</string>
-    <string name="title_activity_main">mewly</string>
-    <string name="package_name">com.mewly.app</string>
-    <string name="custom_url_scheme">com.mewly.app</string>
+    <string name="app_name">Mewly</string>
+    <string name="title_activity_main">Mewly</string>
+    <string name="package_name">app.mewly.client</string>
+    <string name="custom_url_scheme">app.mewly.client</string>
 </resources>

@@ -4,7 +4,7 @@ import { ref } from 'vue'
 // @claude player consuming it lives in LiveStream, so the preference is shared
 // @claude module state rather than component state.
 const DEFAULT_STREAM_PROTOCOL = 'hls'
-const STREAM_PROTOCOL_STORAGE_KEY = 'babycat_stream_protocol'
+const STREAM_PROTOCOL_STORAGE_KEY = 'mewly_stream_protocol'
 const STREAM_PROTOCOLS = ['hls', 'webrtc']
 
 function readStoredProtocol() {
