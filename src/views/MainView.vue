@@ -3,106 +3,102 @@ import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
-import { useTheme } from '../composables/useTheme.js'
 import { useStreamProtocol } from '../composables/useStreamProtocol.js'
+import { useNotifications } from '../composables/useNotifications.js'
 import SheetFrame from '../components/SheetFrame.vue'
+import ModalFrame from '../components/ModalFrame.vue'
+import HomeTab from '../components/HomeTab.vue'
 
-const LiveMobile = defineAsyncComponent(() => import('../components/LiveMobile.vue'))
-const ClipsMobile = defineAsyncComponent(() => import('../components/ClipsMobile.vue'))
+const CalendarTab = defineAsyncComponent(() => import('../components/CalendarTab.vue'))
+const RecordsTab = defineAsyncComponent(() => import('../components/RecordsTab.vue'))
+const SettingsTab = defineAsyncComponent(() => import('../components/SettingsTab.vue'))
+const NotificationsOverlay = defineAsyncComponent(() => import('../components/NotificationsOverlay.vue'))
+const ProfileOverlay = defineAsyncComponent(() => import('../components/ProfileOverlay.vue'))
+const NotifSettingsOverlay = defineAsyncComponent(() => import('../components/NotifSettingsOverlay.vue'))
+const ScheduleEditor = defineAsyncComponent(() => import('../components/ScheduleEditor.vue'))
 const CameraPanel = defineAsyncComponent(() => import('../components/CameraPanel.vue'))
 const ChangePasswordPanel = defineAsyncComponent(() => import('../components/ChangePasswordPanel.vue'))
 const PromptSheet = defineAsyncComponent(() => import('../components/PromptSheet.vue'))
 const PtzSheet = defineAsyncComponent(() => import('../components/PtzSheet.vue'))
 const ResourcesSheet = defineAsyncComponent(() => import('../components/ResourcesSheet.vue'))
+const MicSheet = defineAsyncComponent(() => import('../components/MicSheet.vue'))
+const TempSheet = defineAsyncComponent(() => import('../components/TempSheet.vue'))
+const LightSheet = defineAsyncComponent(() => import('../components/LightSheet.vue'))
+const ServerPanel = defineAsyncComponent(() => import('../components/ServerPanel.vue'))
 
-const { cameraViewState, connected, ptzEnabled, load: loadCamera } = useCamera()
-const {
-  logout, mustChangePassword,
-  isAuthenticated, isPersistentSession, sessionRemainingSeconds,
-} = useAuth()
-const { t, locale, toggleLocale } = useLocale()
-const { theme, setTheme } = useTheme()
+const { connected, load: loadCamera } = useCamera()
+const { logout, mustChangePassword } = useAuth()
+const { t } = useLocale()
 const { preferredProtocol, setProtocol } = useStreamProtocol()
+const { unreadCount } = useNotifications()
 
-// ── Layout state ──
-const activeTab = ref('video')
-const drawerOpen = ref(false)
-const sheet = ref(null) // null | 'camera' | 'password' | 'prompt' | 'ptz' | 'resources'
+// ── Layout state (시안의 계층: 탭 4개 + 오버레이 + 시트 + 모달) ──
+const activeTab = ref('home')
+const overlay = ref(null) // null | 'notifications' | 'profile' | 'notifSettings'
+const schedEditId = ref(false) // false = 닫힘 | null = 신규 | number = 수정
+const schedEditDate = ref(null)
+const sheet = ref(null) // null | 'mic' | 'temp' | 'light' | 'ptz'
+const modal = ref(null) // null | 'camera' | 'prompt' | 'resources' | 'password' | 'server'
 
-// @claude Forced first-login flow (FR-006): the change-password sheet opens by
+// @claude Forced first-login flow (FR-006): the change-password modal opens by
 // @claude itself and cannot be dismissed until the password is changed.
 watch(mustChangePassword, (forced) => {
-  if (forced) sheet.value = 'password'
+  if (forced) modal.value = 'password'
 }, { immediate: true })
 
-const sheetClosable = computed(() => !(sheet.value === 'password' && mustChangePassword.value))
+const modalClosable = computed(() => !(modal.value === 'password' && mustChangePassword.value))
 
-function openSheet(name) {
-  sheet.value = name
-  drawerOpen.value = false
-}
-function closeSheet() {
-  if (!sheetClosable.value) return
-  sheet.value = null
+function closeModal() {
+  if (!modalClosable.value) return
+  modal.value = null
 }
 
 function goTab(key) {
   activeTab.value = key
-  drawerOpen.value = false
-  if (sheetClosable.value) sheet.value = null
+  overlay.value = null
+  sheet.value = null
+  if (modalClosable.value) modal.value = null
 }
 
-function toggleTheme() {
-  setTheme(theme.value === 'light' ? 'dark' : 'light')
+// 알림 항목 탭: 이상행동 → 기록, 일정 알람 → 일정 (시안 동작)
+function onNotifOpen(kind) {
+  overlay.value = null
+  activeTab.value = kind === 'abn' ? 'rec' : 'cal'
 }
 
-function handleLogout() {
-  logout({ redirect: true })
+function openScheduleEditor({ id = null, date }) {
+  schedEditId.value = id
+  schedEditDate.value = date
 }
 
-// ── Top bar ──
-const showSessionRemaining = computed(() =>
-  isAuthenticated.value && !isPersistentSession.value && sessionRemainingSeconds.value > 0,
-)
-const sessionRemainingText = computed(() => {
-  const total = sessionRemainingSeconds.value
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
-})
+const tabs = [
+  { key: 'home', icon: 'house', label: () => t('tab.home') },
+  { key: 'cal', icon: 'calendar-blank', label: () => t('tab.schedule') },
+  { key: 'rec', icon: 'clock-counter-clockwise', label: () => t('tab.records') },
+  { key: 'set', icon: 'gear', label: () => t('tab.settings') },
+]
+const tabTitle = computed(() => ({
+  cal: t('tab.schedule'),
+  rec: t('tab.records'),
+  set: t('tab.settings'),
+}[activeTab.value] || ''))
+
 const protocolOptions = [
   { key: 'hls', label: 'HLS' },
   { key: 'webrtc', label: 'WebRTC' },
 ]
 
-// ── Drawer (웹 레일과 같은 구성: 탭 상단, 기능·설정·하단 항목) ──
-const drawerTabs = computed(() => [
-  { key: 'video', icon: 'ph ph-monitor-play', label: t('dashboard.tab.video') },
-  { key: 'clips', icon: 'ph ph-film-strip', label: t('dashboard.tab.clips') },
-])
-// @claude 기능 그룹: 바텀 시트를 여는 항목들. PTZ는 포트 미입력 시 숨긴다
-// @claude (낙관적 활성 정책의 사전 비활성 조건과 동일).
-const drawerFeatures = computed(() => [
-  { key: 'camera', icon: 'ph ph-video-camera', label: t('dashboard.menu.camera'), onClick: () => openSheet('camera') },
-  { key: 'prompt', icon: 'ph ph-chat-text', label: t('dashboard.panel.prompt'), onClick: () => openSheet('prompt') },
-  ...(ptzEnabled.value ? [{ key: 'ptz', icon: 'ph ph-arrows-out-cardinal', label: 'PTZ', onClick: () => openSheet('ptz') }] : []),
-  { key: 'resources', icon: 'ph ph-gauge', label: t('dashboard.resources'), onClick: () => openSheet('resources') },
-])
-const drawerPrefs = computed(() => [
-  { key: 'lang', icon: 'ph ph-translate', label: t('locale.switchControl'), value: locale.value === 'ko' ? '한국어' : 'English', onClick: toggleLocale },
-  {
-    key: 'theme', icon: 'ph ph-moon', label: t('dashboard.menu.theme'),
-    value: theme.value === 'dark' ? t('dashboard.theme.dark') : t('dashboard.theme.light'),
-    onClick: toggleTheme,
-  },
-])
-const drawerBottom = computed(() => [
-  { key: 'password', icon: 'ph ph-key', label: t('dashboard.menu.password'), value: '', onClick: () => openSheet('password') },
-  { key: 'logout', icon: 'ph ph-sign-out', label: t('dashboard.menu.logout'), value: '', onClick: handleLogout },
-])
-
-const sheetTitle = computed(() => ({
-  camera: t('dashboard.menu.camera'),
+const modalTitle = computed(() => ({
+  camera: t('set.rowCam'),
+  prompt: t('set.rowPrompt'),
+  resources: t('set.rowRes'),
   password: t('dashboard.menu.password'),
-}[sheet.value] || ''))
+  server: t('set.rowServer'),
+}[modal.value] || ''))
+
+function handleLogout() {
+  logout({ redirect: true })
+}
 
 onMounted(loadCamera)
 </script>
@@ -112,115 +108,103 @@ onMounted(loadCamera)
 
     <!-- ── Top app bar ── -->
     <header class="topbar">
-      <span class="brand">
-        <button class="drawer-toggle" :title="t('dashboard.sidebarShow')" @click="drawerOpen = true">
-          <i class="ph ph-list"></i>
-        </button>
+      <span v-if="activeTab === 'home'" class="brand">
+        <span class="brand-avatar"><i class="ph ph-dog"></i></span>
         Mewly
       </span>
-      <div v-if="activeTab === 'video'" class="topbar-right">
-        <span v-if="showSessionRemaining" class="session-chip">
-          <i class="ph ph-clock"></i>{{ sessionRemainingText }}
-        </span>
-        <!-- 알약의 어느 부분을 눌러도 반대 프로토콜로 전환된다 -->
-        <button
-          class="proto-pill"
-          role="switch"
-          :aria-checked="preferredProtocol === 'webrtc'"
-          :aria-label="t('live.protocolToggle')"
-          @click="setProtocol(preferredProtocol === 'hls' ? 'webrtc' : 'hls')"
-        >
-          <span
-            v-for="p in protocolOptions"
+      <span v-else class="topbar-title">{{ tabTitle }}</span>
+
+      <span class="topbar-right">
+        <div v-if="activeTab === 'home'" class="proto-seg">
+          <button
+            v-for="(p, i) in protocolOptions"
             :key="p.key"
             class="proto-opt"
-            :class="{ active: preferredProtocol === p.key }"
-          >{{ p.label }}</span>
+            :class="{ active: preferredProtocol === p.key, first: i === 0 }"
+            @click="setProtocol(p.key)"
+          >{{ p.label }}</button>
+        </div>
+        <button class="bell" :title="t('notif.title')" @click="overlay = 'notifications'">
+          <i class="ph ph-bell"></i>
+          <span v-if="unreadCount" class="bell-badge">{{ unreadCount }}</span>
         </button>
-      </div>
+      </span>
     </header>
 
     <!-- ── Content ── -->
     <main class="content">
-
-      <template v-if="activeTab === 'video'">
-        <div v-if="cameraViewState === 'unconfigured'" class="empty-state">
-          <i class="ph ph-video-camera-slash"></i>
-          <div class="empty-title">{{ t('dashboard.empty.title') }}</div>
-          <div class="empty-body">{{ t('dashboard.empty.body') }}</div>
-          <button class="empty-cta" @click="openSheet('camera')">{{ t('dashboard.empty.cta') }}</button>
-        </div>
-        <LiveMobile v-else @open-sheet="openSheet" />
-      </template>
-
-      <div v-else class="clips-tab">
-        <ClipsMobile />
-      </div>
-
+      <HomeTab
+        v-if="activeTab === 'home'"
+        @open-sheet="sheet = $event"
+        @open-modal="modal = $event"
+        @go-records="activeTab = 'rec'"
+      />
+      <CalendarTab
+        v-else-if="activeTab === 'cal'"
+        @edit-schedule="openScheduleEditor"
+        @go-records="activeTab = 'rec'"
+      />
+      <RecordsTab v-else-if="activeTab === 'rec'" />
+      <SettingsTab
+        v-else
+        @open-modal="modal = $event"
+        @open-overlay="overlay = $event"
+        @logout="handleLogout"
+      />
     </main>
 
-    <!-- ── Drawer ── -->
-    <Transition name="drawer">
-      <div v-if="drawerOpen" class="drawer-backdrop" @click.self="drawerOpen = false">
-        <nav class="drawer">
-          <!-- 상단바와 같은 높이·구성의 머리: 햄버거는 닫기 동작 -->
-          <div class="drawer-head">
-            <button class="drawer-toggle" :title="t('dashboard.sidebarHide')" @click="drawerOpen = false">
-              <i class="ph ph-list"></i>
-            </button>
-            Mewly
-          </div>
-          <button
-            v-for="tab in drawerTabs"
-            :key="tab.key"
-            class="drawer-item tab"
-            :class="{ active: activeTab === tab.key }"
-            @click="goTab(tab.key)"
-          >
-            <i :class="tab.icon"></i><span class="drawer-label">{{ tab.label }}</span>
-          </button>
-          <div class="drawer-spacer"></div>
-          <button
-            v-for="item in drawerFeatures"
-            :key="item.key"
-            class="drawer-item"
-            @click="item.onClick"
-          >
-            <i :class="item.icon"></i><span class="drawer-label">{{ item.label }}</span>
-          </button>
-          <div class="drawer-rule"></div>
-          <button
-            v-for="item in drawerPrefs"
-            :key="item.key"
-            class="drawer-item"
-            @click="item.onClick"
-          >
-            <i :class="item.icon"></i><span class="drawer-label">{{ item.label }}</span>
-            <span class="drawer-value">{{ item.value }}</span>
-          </button>
-          <div class="drawer-rule"></div>
-          <button
-            v-for="item in drawerBottom"
-            :key="item.key"
-            class="drawer-item"
-            @click="item.onClick"
-          >
-            <i :class="item.icon"></i><span class="drawer-label">{{ item.label }}</span>
-          </button>
-        </nav>
-      </div>
-    </Transition>
+    <!-- ── Bottom navigation ── -->
+    <nav class="bottom-nav">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="nav-item"
+        :class="{ active: activeTab === tab.key }"
+        @click="goTab(tab.key)"
+      >
+        <i :class="`${activeTab === tab.key ? 'ph-fill' : 'ph'} ph-${tab.icon}`"></i>
+        <span>{{ tab.label() }}</span>
+      </button>
+    </nav>
 
-    <!-- ── Sheets ── -->
-    <SheetFrame v-if="sheet === 'camera'" :title="sheetTitle" @close="closeSheet">
-      <CameraPanel @close="sheet = null" />
-    </SheetFrame>
-    <SheetFrame v-else-if="sheet === 'password'" :title="sheetTitle" :closable="sheetClosable" @close="closeSheet">
-      <ChangePasswordPanel :forced="mustChangePassword" @close="sheet = null" />
-    </SheetFrame>
-    <PromptSheet v-else-if="sheet === 'prompt'" @close="sheet = null" />
+    <!-- ── Full-screen overlays ── -->
+    <NotificationsOverlay
+      v-if="overlay === 'notifications'"
+      @close="overlay = null"
+      @open="onNotifOpen"
+    />
+    <ProfileOverlay v-else-if="overlay === 'profile'" @close="overlay = null" />
+    <NotifSettingsOverlay v-else-if="overlay === 'notifSettings'" @close="overlay = null" />
+    <ScheduleEditor
+      v-if="schedEditId !== false"
+      :schedule-id="schedEditId"
+      :date="schedEditDate"
+      @close="schedEditId = false"
+    />
+
+    <!-- ── Bottom sheets ── -->
+    <MicSheet v-if="sheet === 'mic'" @close="sheet = null" />
+    <TempSheet v-else-if="sheet === 'temp'" @close="sheet = null" />
+    <LightSheet v-else-if="sheet === 'light'" @close="sheet = null" />
     <PtzSheet v-else-if="sheet === 'ptz'" :active="connected" @close="sheet = null" />
-    <ResourcesSheet v-else-if="sheet === 'resources'" @close="sheet = null" />
+
+    <!-- ── Centered modals ── -->
+    <ModalFrame v-if="modal === 'camera'" :title="modalTitle" @close="closeModal">
+      <CameraPanel @close="modal = null" />
+    </ModalFrame>
+    <PromptSheet v-else-if="modal === 'prompt'" @close="modal = null" />
+    <ResourcesSheet v-else-if="modal === 'resources'" @close="modal = null" />
+    <ModalFrame
+      v-else-if="modal === 'password'"
+      :title="modalTitle"
+      :closable="modalClosable"
+      @close="closeModal"
+    >
+      <ChangePasswordPanel :forced="mustChangePassword" @close="modal = null" />
+    </ModalFrame>
+    <ModalFrame v-else-if="modal === 'server'" :title="modalTitle" @close="closeModal">
+      <ServerPanel @close="modal = null" />
+    </ModalFrame>
   </div>
 </template>
 
@@ -234,71 +218,94 @@ onMounted(loadCamera)
   font-size: 14px;
 }
 
-/* — top app bar — */
+/* — top app bar (시안: 58px, 홈=아바타+브랜드, 그 외=탭 제목) — */
 .topbar {
-  height: 52px;
+  height: 58px;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px 0 16px;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-family: var(--font-brand);
   font-size: 22px;
+  color: var(--color-accent);
 }
-.drawer-toggle {
-  width: 40px; height: 40px;
-  border-radius: 100px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 21px;
-  cursor: pointer;
+.brand-avatar {
+  width: 34px; height: 34px;
+  border-radius: 17px;
+  background: var(--color-neutral-800);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--color-neutral-500);
+  font-size: 16px;
 }
-.drawer-toggle:active { background: var(--color-neutral-900); }
+.topbar-title {
+  font-size: 18px;
+  font-weight: 700;
+}
 .topbar-right {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.session-chip {
+.proto-seg {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  color: var(--color-neutral-400);
-  background: var(--color-neutral-900);
-  border-radius: 100px;
-  padding: 6px 12px;
-  font-variant-numeric: tabular-nums;
-}
-.session-chip i { font-size: 13.5px; }
-.proto-pill {
-  display: flex;
-  border: 1px solid var(--color-neutral-800);
-  border-radius: 100px;
-  padding: 2px;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
+  border-radius: 8px;
+  overflow: hidden;
 }
 .proto-opt {
-  border-radius: 100px;
-  padding: 5px 11px;
-  font-size: 11.5px;
+  width: 66px; height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-neutral-800);
+  font-size: 11.8px;
+  font-family: inherit;
   background: transparent;
   color: var(--color-neutral-400);
+  cursor: pointer;
+  white-space: nowrap;
 }
+.proto-opt.first { border-radius: 8px 0 0 8px; }
+.proto-opt:not(.first) { border-radius: 0 8px 8px 0; margin-left: -1px; }
 .proto-opt.active {
+  position: relative;
+  z-index: 1;
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-weight: 800;
+}
+.bell {
+  position: relative;
+  width: 44px; height: 44px;
+  border: none;
+  background: none;
+  color: var(--color-neutral-300);
+  font-size: 19px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bell:active { background: var(--color-neutral-900); border-radius: 100px; }
+.bell-badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
   background: var(--color-accent);
-  color: #12131c;
+  color: var(--color-bg);
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
 }
 
 /* — content — */
@@ -308,129 +315,34 @@ onMounted(loadCamera)
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.clips-tab {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 12px;
 }
 
-/* — empty state — */
-.empty-state {
-  flex: 1;
+/* — bottom navigation (시안: 64px, 4열, 활성=accent·fill·800) — */
+.bottom-nav {
+  flex: none;
+  height: 64px;
+  border-top: 1px solid var(--color-divider);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--color-bg);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  border: none;
+  background: none;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 0 34px;
-  text-align: center;
-}
-.empty-state > i {
-  font-size: 34px;
+  gap: 3px;
   color: var(--color-neutral-500);
-}
-.empty-title { font-size: 16px; font-weight: 700; }
-.empty-body {
-  font-size: 13.5px;
-  color: var(--color-neutral-400);
-  line-height: 1.55;
-  text-wrap: pretty;
-}
-.empty-cta {
-  height: 52px;
-  padding: 0 24px;
-  border-radius: 100px;
-  border: none;
-  background: var(--color-accent);
-  color: #12131c;
-  font-size: 15px;
-  font-weight: 700;
   font-family: inherit;
-  cursor: pointer;
 }
-
-/* — drawer — */
-.drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 180;
-  background: rgba(8, 9, 14, 0.5);
+.nav-item i { font-size: 20px; }
+.nav-item span { font-size: 10.5px; }
+.nav-item.active {
+  color: var(--color-accent);
 }
-.drawer {
-  position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 264px;
-  background: var(--color-bg);
-  border-right: 1px solid var(--color-divider);
-  display: flex;
-  flex-direction: column;
-  padding: 0 12px calc(14px + env(safe-area-inset-bottom));
-  gap: 4px;
-  overflow-y: auto;
-}
-/* 상단바와 같은 높이·구성 — 열림/닫힘 사이에 이질감이 없도록 정렬을 맞춘다 */
-.drawer-head {
-  height: 52px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-brand);
-  font-size: 22px;
-  margin-bottom: 8px;
-}
-.drawer-item {
-  height: 44px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 14px;
-  border-radius: 100px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-family: inherit;
-  font-size: 14.5px;
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-}
-.drawer-item.tab { height: 48px; font-size: 15.5px; }
-.drawer-item i { font-size: 19px; flex: none; }
-.drawer-item.tab i { font-size: 20px; }
-.drawer-item:active { background: var(--color-neutral-900); }
-.drawer-item.active {
-  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
-  color: var(--color-text);
-}
-.drawer-label {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.drawer-value {
-  font-size: 12.5px;
-  color: var(--color-neutral-500);
-}
-.drawer-spacer { flex: 1; }
-.drawer-rule {
-  height: 1px;
-  background: var(--color-divider);
-  margin: 8px 4px;
-  flex: none;
-}
-
-/* 서랍 전환: 배경은 흐려지고 패널은 좌측에서 밀려 나온다 */
-.drawer-enter-active,
-.drawer-leave-active { transition: opacity 0.2s; }
-.drawer-enter-active .drawer,
-.drawer-leave-active .drawer { transition: transform 0.2s ease; }
-.drawer-enter-from,
-.drawer-leave-to { opacity: 0; }
-.drawer-enter-from .drawer,
-.drawer-leave-to .drawer { transform: translateX(-100%); }
+.nav-item.active span { font-weight: 800; }
 </style>

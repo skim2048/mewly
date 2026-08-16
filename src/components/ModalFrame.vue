@@ -1,0 +1,79 @@
+<script setup>
+defineProps({
+  title: { type: String, default: '' },
+  closable: { type: Boolean, default: true },
+})
+const emit = defineEmits(['close'])
+
+// @claude 시안: 배경 클릭은 닫기와 같다(강제 비밀번호 변경만 차단).
+function onBackdrop(e) {
+  if (e.target === e.currentTarget) emit('close')
+}
+</script>
+
+<template>
+  <div class="modal-backdrop" @click="onBackdrop">
+    <div class="modal-frame" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <span class="modal-title">{{ title }}</span>
+        <button v-if="closable" class="modal-x" @click="emit('close')"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <slot />
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.58);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-frame {
+  width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-title {
+  flex: 1;
+  font-size: 16.5px;
+  font-weight: 800;
+}
+.modal-x {
+  width: 34px; height: 34px;
+  border: none;
+  background: none;
+  color: var(--color-neutral-400);
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-x:active { background: var(--color-neutral-900); }
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+</style>

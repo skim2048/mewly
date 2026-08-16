@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import SheetFrame from './SheetFrame.vue'
+import ModalFrame from './ModalFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
 import { useAnalysis } from '../composables/useAnalysis.js'
 import { authFetch } from '../composables/useFetch.js'
@@ -66,7 +66,7 @@ function revertAndClose() {
 </script>
 
 <template>
-  <SheetFrame :title="t('dashboard.panel.prompt')" @close="revertAndClose">
+  <ModalFrame :title="t('set.rowPrompt')" @close="revertAndClose">
     <div class="form-col">
       <div v-if="rejected" class="form-note warn">
         <i class="ph ph-info"></i><span>{{ t('prompt.status.needStreaming') }}</span>
@@ -87,5 +87,5 @@ function revertAndClose() {
         <button class="form-btn" @click="revertAndClose">{{ t('prompt.action.revert') }}</button>
       </div>
     </div>
-  </SheetFrame>
+  </ModalFrame>
 </template>

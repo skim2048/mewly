@@ -1,6 +1,6 @@
 <script setup>
 import { computed, reactive, watch } from 'vue'
-import SheetFrame from './SheetFrame.vue'
+import ModalFrame from './ModalFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
 import { useLocale } from '../composables/useLocale.js'
 
@@ -65,7 +65,7 @@ const rows = computed(() => [
 </script>
 
 <template>
-  <SheetFrame :title="t('dashboard.resources')" @close="$emit('close')">
+  <ModalFrame :title="t('set.rowRes')" @close="$emit('close')">
     <div class="res-list">
       <div v-for="(row, i) in rows" :key="row.name" class="res-row" :class="{ first: i === 0 }">
         <div class="res-head">
@@ -80,7 +80,7 @@ const rows = computed(() => [
         </svg>
       </div>
     </div>
-  </SheetFrame>
+  </ModalFrame>
 </template>
 
 <style scoped>
