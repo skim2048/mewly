@@ -26,6 +26,12 @@ const mic = persistentRef('device.mic', {
   volume: 60,         // 스피커 음량 %
 })
 
+// 자동 순찰 — 백엔드 미지원, 형태만 (interval 초 단위, 0 아님 = 사용)
+const patrol = persistentRef('device.patrol', {
+  enabled: false,
+  intervalSec: 30,
+})
+
 export function useDevices() {
-  return { light, temp, mic }
+  return { light, temp, mic, patrol }
 }

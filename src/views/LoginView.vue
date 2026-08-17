@@ -51,7 +51,8 @@ async function handleLogin() {
 <template>
   <form class="login-page" @submit.prevent="handleLogin" novalidate>
     <div class="login-head">
-      <h1 class="login-title">{{ t('login.title') }}</h1>
+      <h1 class="login-title">Mewly</h1>
+      <span class="login-sub">{{ t('login.subtitle') }}</span>
     </div>
 
     <div v-if="error || noticeKey" class="form-note login-notice">
@@ -107,12 +108,19 @@ async function handleLogin() {
   flex-direction: column;
   gap: 8px;
 }
+/* 시안: 브랜드 워드마크 + 부제 */
 .login-title {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  margin-top: 10px;
+  font-family: var(--font-brand);
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--color-accent);
+  margin: 0;
   line-height: 1.2;
+}
+.login-sub {
+  font-size: 13.3px;
+  color: var(--color-neutral-400);
+  line-height: 1.5;
 }
 .login-notice {
   font-size: 13px;
@@ -144,10 +152,12 @@ async function handleLogin() {
   border: 1px solid var(--color-neutral-700);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px;
-  color: var(--color-accent);
+  color: var(--color-bg);
+  box-sizing: border-box;
 }
+/* 시안: 켜짐 = 액센트 채움, 체크는 배경색 */
 .login-check.on {
-  background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  background: var(--color-accent);
   border-color: var(--color-accent);
 }
 

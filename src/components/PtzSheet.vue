@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import SheetFrame from './SheetFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
 import { usePtz } from '../composables/usePtz.js'
+import { useDevices } from '../composables/useDevices.js'
 import { useLocale } from '../composables/useLocale.js'
 
 const props = defineProps({
@@ -12,19 +13,21 @@ const emit = defineEmits(['close'])
 
 const { state } = useSSE()
 const { speedLevel, setSpeedLevel, startMove, stopMove, savePreset, gotoPreset } = usePtz()
-const { t } = useLocale()
+const { patrol } = useDevices()
+const { t, locale } = useLocale()
 
 const ptzPressing = ref(null)
 const ptzSaveMode = ref(false)
 const ptzMessage = ref('') // '' | 'saveFailed' | 'gotoEmpty'
+const patrolOpen = ref(false)
 
 const savedSlots = computed(() => new Set(state.ptz_presets || []))
 
 const ptzDirs = [
-  { id: 'up',    pan:  0, tilt:  1, icon: 'ph ph-caret-up' },
-  { id: 'down',  pan:  0, tilt: -1, icon: 'ph ph-caret-down' },
-  { id: 'left',  pan: -1, tilt:  0, icon: 'ph ph-caret-left' },
-  { id: 'right', pan:  1, tilt:  0, icon: 'ph ph-caret-right' },
+  { id: 'up',    pan:  0, tilt:  1 },
+  { id: 'down',  pan:  0, tilt: -1 },
+  { id: 'left',  pan: -1, tilt:  0 },
+  { id: 'right', pan:  1, tilt:  0 },
 ]
 
 function ptzDown(dir, event) {
@@ -65,6 +68,28 @@ const ptzHint = computed(() => {
   return ptzSaveMode.value ? t('live.ptz.saveHint') : t('live.ptz.gotoHint')
 })
 
+// @claude 시안의 속도 2단(보통·고속)은 usePtz의 3단 중 1·2 레벨에 대응한다.
+const speedOptions = computed(() => [
+  { level: 1, label: t('live.ptz.speedNormal') },
+  { level: 2, label: t('live.ptz.speedFast') },
+])
+
+// — 자동 순찰 (백엔드 미지원, 형태만) —
+const PATROL_INTERVALS = [0, 10, 30, 60, 300, 600]
+function intervalLabel(sec) {
+  if (sec === 0) return t('ptz.patrolOff')
+  if (sec < 60) return locale.value === 'en' ? `${sec}s` : `${sec}초`
+  return locale.value === 'en' ? `${sec / 60}m` : `${sec / 60}분`
+}
+const patrolValue = computed(() =>
+  patrol.value.enabled ? intervalLabel(patrol.value.intervalSec) : t('common.off'),
+)
+function pickInterval(sec) {
+  patrol.value = sec === 0
+    ? { ...patrol.value, enabled: false }
+    : { enabled: true, intervalSec: sec }
+}
+
 function onClose() {
   if (ptzPressing.value != null) stopMove()
   emit('close')
@@ -74,6 +99,7 @@ function onClose() {
 <template>
   <SheetFrame title="PTZ" @close="onClose">
     <div class="ptz-sheet" :class="{ off: !active }" :aria-disabled="!active">
+
       <div class="ptz-top">
         <div class="ptz-pad">
           <button
@@ -82,12 +108,11 @@ function onClose() {
             class="ptz-dir"
             :class="[dir.id, { pressing: ptzPressing === dir.id }]"
             :title="t(`live.ptz.${dir.id}`)"
-            @mousedown="(e) => ptzDown(dir, e)"
-            @mouseup="ptzUp(dir)"
-            @mouseleave="ptzUp(dir)"
-            @touchstart.prevent="(e) => ptzDown(dir, e)"
-            @touchend="ptzUp(dir)"
-          ><i :class="dir.icon"></i></button>
+            @pointerdown="(e) => ptzDown(dir, e)"
+            @pointerup="ptzUp(dir)"
+            @pointercancel="ptzUp(dir)"
+            @pointerleave="ptzUp(dir)"
+          ><i :class="`ph ph-caret-${dir.id}`"></i></button>
           <button class="ptz-stop" :title="t('live.ptz.stop')" @click="ptzStopNow">STOP</button>
         </div>
 
@@ -99,21 +124,21 @@ function onClose() {
               <span class="ptz-zoom-val">×1.0</span>
             </div>
             <div class="ptz-zoom-ctl">
-              <button class="ptz-round" disabled><i class="ph ph-minus"></i></button>
+              <i class="ph ph-magnifying-glass-minus"></i>
               <input type="range" min="1" max="8" step="0.5" value="1" disabled />
-              <button class="ptz-round" disabled><i class="ph ph-plus"></i></button>
+              <i class="ph ph-magnifying-glass-plus"></i>
             </div>
           </div>
           <div class="ptz-speed">
             <span class="ptz-row-label">{{ t('live.ptz.speed') }}</span>
             <div class="ptz-speed-seg">
               <button
-                v-for="(label, i) in [t('live.ptz.speedSlow'), t('live.ptz.speedNormal'), t('live.ptz.speedFast')]"
-                :key="i"
+                v-for="(opt, i) in speedOptions"
+                :key="opt.level"
                 class="ptz-speed-opt"
-                :class="{ active: speedLevel === i }"
-                @click="setSpeedLevel(i)"
-              >{{ label }}</button>
+                :class="{ active: speedLevel === opt.level, first: i === 0 }"
+                @click="setSpeedLevel(opt.level)"
+              >{{ opt.label }}</button>
             </div>
           </div>
         </div>
@@ -123,6 +148,7 @@ function onClose() {
         <div class="ptz-presets-head">
           <span class="ptz-row-label">{{ t('live.ptz.presets') }}</span>
           <button class="ptz-save-toggle" @click="ptzSaveMode = !ptzSaveMode; ptzMessage = ''">
+            <i v-if="!ptzSaveMode" class="ph ph-gear-six"></i>
             {{ ptzSaveMode ? t('live.ptz.saveCancel') : t('live.ptz.savePosition') }}
           </button>
         </div>
@@ -139,6 +165,32 @@ function onClose() {
         </div>
         <span class="ptz-hint" :class="{ err: !!ptzMessage }">{{ ptzHint }}</span>
       </div>
+
+      <!-- 자동 순찰 — 백엔드 미지원, 형태만 -->
+      <div class="patrol-card">
+        <button class="patrol-head" @click="patrolOpen = !patrolOpen">
+          <i class="ph ph-path patrol-icon"></i>
+          <span class="patrol-copy">
+            <span class="patrol-title">{{ t('ptz.patrol') }}</span>
+            <span class="patrol-sub">{{ patrol.enabled ? t('ptz.patrolSub') : t('light.nightOffSub') }}</span>
+          </span>
+          <span class="patrol-value" :class="{ on: patrol.enabled }">{{ patrolValue }}</span>
+          <i :class="patrolOpen ? 'ph ph-caret-up' : 'ph ph-caret-down'" class="patrol-caret"></i>
+        </button>
+        <div v-if="patrolOpen" class="patrol-detail">
+          <span class="patrol-label">{{ t('ptz.patrolInterval') }}</span>
+          <div class="patrol-grid">
+            <button
+              v-for="sec in PATROL_INTERVALS"
+              :key="sec"
+              class="patrol-opt"
+              :class="{ on: sec === 0 ? !patrol.enabled : patrol.enabled && patrol.intervalSec === sec }"
+              @click="pickInterval(sec)"
+            >{{ intervalLabel(sec) }}</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </SheetFrame>
 </template>
@@ -147,7 +199,7 @@ function onClose() {
 .ptz-sheet {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 .ptz-sheet.off {
   opacity: 0.45;
@@ -156,29 +208,33 @@ function onClose() {
 }
 .ptz-top {
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: center;
+  padding-top: 6px;
 }
 .ptz-pad {
   position: relative;
-  width: 140px;
-  height: 140px;
+  width: 176px;
+  height: 176px;
   flex: none;
   border-radius: 50%;
   background: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-800);
+  box-sizing: border-box;
 }
 .ptz-dir {
   position: absolute;
-  width: 46px; height: 46px;
+  width: 52px; height: 52px;
   border-radius: 50%;
   border: none;
   background: transparent;
   color: var(--color-text);
-  font-size: 21px;
+  font-size: 23px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
 }
 .ptz-dir.up    { top: 6px; left: 50%; transform: translateX(-50%); }
 .ptz-dir.down  { bottom: 6px; left: 50%; transform: translateX(-50%); }
@@ -190,12 +246,12 @@ function onClose() {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 46px; height: 46px;
+  width: 66px; height: 66px;
   border-radius: 50%;
-  border: none;
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
-  color: var(--color-text);
-  font-size: 10.5px;
+  border: 1px solid var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-size: 12px;
   font-weight: 700;
   font-family: inherit;
   letter-spacing: 0.04em;
@@ -230,15 +286,10 @@ function onClose() {
   gap: 10px;
   opacity: 0.45;
 }
-.ptz-round {
-  width: 38px; height: 38px;
+.ptz-zoom-ctl > i {
   flex: none;
-  border-radius: 19px;
-  border: none;
-  background: var(--color-neutral-800);
-  color: var(--color-text);
-  font-size: 16px;
-  cursor: default;
+  font-size: 17px;
+  color: var(--color-neutral-500);
 }
 .ptz-zoom-ctl input[type='range'] {
   flex: 1;
@@ -265,24 +316,30 @@ function onClose() {
 }
 .ptz-speed-seg {
   display: flex;
-  gap: 6px;
-  background: var(--color-neutral-900);
-  border-radius: 100px;
-  padding: 3px;
+  align-self: flex-start;
+  border-radius: 8px;
+  overflow: hidden;
 }
 .ptz-speed-opt {
-  flex: 1;
-  height: 36px;
-  border-radius: 100px;
-  border: none;
+  width: 78px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--color-neutral-800);
   background: transparent;
-  color: var(--color-text);
-  font-size: 12.5px;
+  color: var(--color-neutral-400);
+  font-size: 12.3px;
   font-family: inherit;
   cursor: pointer;
 }
+.ptz-speed-opt.first { border-radius: 8px 0 0 8px; }
+.ptz-speed-opt:not(.first) { border-radius: 0 8px 8px 0; margin-left: -1px; }
 .ptz-speed-opt.active {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  position: relative;
+  z-index: 1;
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-weight: 800;
 }
 
 .ptz-presets {
@@ -296,27 +353,33 @@ function onClose() {
   justify-content: space-between;
 }
 .ptz-save-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: none;
   padding: 0;
   color: var(--color-accent-300);
-  font-size: 12.5px;
+  font-size: 11.8px;
   font-family: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
+.ptz-save-toggle i { font-size: 13px; }
 .ptz-slots {
   display: flex;
   gap: 8px;
 }
 .ptz-slot {
   flex: 1;
-  height: 46px;
-  border-radius: 100px;
-  border: none;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid transparent;
   background: var(--color-neutral-900);
-  color: var(--color-text);
+  color: var(--color-neutral-300);
   font-size: 13.5px;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -324,16 +387,104 @@ function onClose() {
   gap: 5px;
 }
 .ptz-slot.saved {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-weight: 800;
 }
 .ptz-slot i {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-accent-300);
 }
 .ptz-hint {
-  font-size: 12px;
+  font-size: 11.8px;
   color: var(--color-neutral-400);
   line-height: 1.45;
 }
 .ptz-hint.err { color: #e07a86; }
+
+/* — 자동 순찰 — */
+.patrol-card {
+  border-radius: 12px;
+  background: var(--color-neutral-900);
+  display: flex;
+  flex-direction: column;
+}
+.patrol-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--color-text);
+  text-align: left;
+}
+.patrol-icon {
+  flex: none;
+  font-size: 17px;
+  color: var(--color-neutral-400);
+}
+.patrol-copy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.patrol-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.patrol-sub {
+  font-size: 11.3px;
+  color: var(--color-neutral-500);
+}
+.patrol-value {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-neutral-500);
+  white-space: nowrap;
+}
+.patrol-value.on { color: var(--color-accent); }
+.patrol-caret {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+}
+.patrol-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0 16px 14px;
+}
+.patrol-label {
+  font-size: 11px;
+  color: var(--color-neutral-500);
+}
+.patrol-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.patrol-opt {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--color-neutral-800);
+  color: var(--color-neutral-300);
+  font-size: 12.3px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.patrol-opt.on {
+  border-color: var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-weight: 800;
+}
 </style>
