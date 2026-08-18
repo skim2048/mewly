@@ -5,7 +5,6 @@ import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useStreamProtocol } from '../composables/useStreamProtocol.js'
 import { useNotifications } from '../composables/useNotifications.js'
-import SheetFrame from '../components/SheetFrame.vue'
 import ModalFrame from '../components/ModalFrame.vue'
 import HomeTab from '../components/HomeTab.vue'
 
@@ -27,7 +26,10 @@ const LightSheet = defineAsyncComponent(() => import('../components/LightSheet.v
 const ServerPanel = defineAsyncComponent(() => import('../components/ServerPanel.vue'))
 
 const { connected, load: loadCamera } = useCamera()
-const { logout, mustChangePassword } = useAuth()
+const {
+  logout, mustChangePassword,
+  isAuthenticated, isPersistentSession, sessionRemainingSeconds,
+} = useAuth()
 const { t } = useLocale()
 const { preferredProtocol, setProtocol } = useStreamProtocol()
 const { unreadCount } = useNotifications()
@@ -35,8 +37,8 @@ const { unreadCount } = useNotifications()
 // ── Layout state (시안의 계층: 탭 4개 + 오버레이 + 시트 + 모달) ──
 const activeTab = ref('home')
 const overlay = ref(null) // null | 'notifications' | 'profile' | 'notifSettings'
-const schedEditId = ref(false) // false = 닫힘 | null = 신규 | number = 수정
-const schedEditDate = ref(null)
+const schedEdit = ref(null) // null = 닫힘 | { id: number|null, date: string } (id null = 신규)
+const recordsDate = ref(null) // 달력 교차 진입 요청 { date } — 매번 새 객체로 전달
 const sheet = ref(null) // null | 'mic' | 'temp' | 'light' | 'ptz'
 const modal = ref(null) // null | 'camera' | 'prompt' | 'resources' | 'password' | 'server'
 
@@ -67,8 +69,13 @@ function onNotifOpen(kind) {
 }
 
 function openScheduleEditor({ id = null, date }) {
-  schedEditId.value = id
-  schedEditDate.value = date
+  schedEdit.value = { id, date }
+}
+
+// 기록 탭 진입. 달력에서 날짜와 함께 요청되면 해당 일자 필터로 연다.
+function goRecords(date) {
+  if (date) recordsDate.value = { date }
+  activeTab.value = 'rec'
 }
 
 const tabs = [
@@ -87,6 +94,16 @@ const protocolOptions = [
   { key: 'hls', label: 'HLS' },
   { key: 'webrtc', label: 'WebRTC' },
 ]
+
+// @claude 비지속 세션의 잔여 시간. 시안 헤더에는 없으나 만료를 모달로만
+// @claude 인지하게 되는 회귀를 피하기 위해 유지한다(검토 지적 반영).
+const showSessionRemaining = computed(() =>
+  isAuthenticated.value && !isPersistentSession.value && sessionRemainingSeconds.value > 0,
+)
+const sessionRemainingText = computed(() => {
+  const total = sessionRemainingSeconds.value
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+})
 
 const modalTitle = computed(() => ({
   camera: t('set.rowCam'),
@@ -115,6 +132,9 @@ onMounted(loadCamera)
       <span v-else class="topbar-title">{{ tabTitle }}</span>
 
       <span class="topbar-right">
+        <span v-if="showSessionRemaining" class="session-chip">
+          <i class="ph ph-clock"></i>{{ sessionRemainingText }}
+        </span>
         <div v-if="activeTab === 'home'" class="proto-seg">
           <button
             v-for="(p, i) in protocolOptions"
@@ -132,25 +152,29 @@ onMounted(loadCamera)
     </header>
 
     <!-- ── Content ── -->
+    <!-- @claude KeepAlive: 탭 전환이 스트림 파괴·목록 재조회·필터 초기화를
+         일으키지 않도록 탭 컴포넌트를 산 채로 유지한다(검토 지적 반영). -->
     <main class="content">
-      <HomeTab
-        v-if="activeTab === 'home'"
-        @open-sheet="sheet = $event"
-        @open-modal="modal = $event"
-        @go-records="activeTab = 'rec'"
-      />
-      <CalendarTab
-        v-else-if="activeTab === 'cal'"
-        @edit-schedule="openScheduleEditor"
-        @go-records="activeTab = 'rec'"
-      />
-      <RecordsTab v-else-if="activeTab === 'rec'" />
-      <SettingsTab
-        v-else
-        @open-modal="modal = $event"
-        @open-overlay="overlay = $event"
-        @logout="handleLogout"
-      />
+      <KeepAlive>
+        <HomeTab
+          v-if="activeTab === 'home'"
+          @open-sheet="sheet = $event"
+          @open-modal="modal = $event"
+          @go-records="goRecords()"
+        />
+        <CalendarTab
+          v-else-if="activeTab === 'cal'"
+          @edit-schedule="openScheduleEditor"
+          @go-records="goRecords"
+        />
+        <RecordsTab v-else-if="activeTab === 'rec'" :date-request="recordsDate" />
+        <SettingsTab
+          v-else
+          @open-modal="modal = $event"
+          @open-overlay="overlay = $event"
+          @logout="handleLogout"
+        />
+      </KeepAlive>
     </main>
 
     <!-- ── Bottom navigation ── -->
@@ -176,10 +200,10 @@ onMounted(loadCamera)
     <ProfileOverlay v-else-if="overlay === 'profile'" @close="overlay = null" />
     <NotifSettingsOverlay v-else-if="overlay === 'notifSettings'" @close="overlay = null" />
     <ScheduleEditor
-      v-if="schedEditId !== false"
-      :schedule-id="schedEditId"
-      :date="schedEditDate"
-      @close="schedEditId = false"
+      v-if="schedEdit"
+      :schedule-id="schedEdit.id"
+      :date="schedEdit.date"
+      @close="schedEdit = null"
     />
 
     <!-- ── Bottom sheets ── -->
@@ -254,6 +278,18 @@ onMounted(loadCamera)
   align-items: center;
   gap: 6px;
 }
+.session-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--color-neutral-400);
+  background: var(--color-neutral-900);
+  border-radius: 100px;
+  padding: 6px 12px;
+  font-variant-numeric: tabular-nums;
+}
+.session-chip i { font-size: 13.5px; }
 .proto-seg {
   display: flex;
   border-radius: 8px;

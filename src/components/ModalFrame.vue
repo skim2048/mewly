@@ -1,13 +1,14 @@
 <script setup>
-defineProps({
+const props = defineProps({
   title: { type: String, default: '' },
   closable: { type: Boolean, default: true },
 })
 const emit = defineEmits(['close'])
 
-// @claude 시안: 배경 클릭은 닫기와 같다(강제 비밀번호 변경만 차단).
+// @claude 시안: 배경 클릭은 닫기와 같다. closable=false(강제 비밀번호 변경)면
+// @claude 프레임이 emit 자체를 막아, 부모의 가드 유무와 무관하게 닫히지 않는다.
 function onBackdrop(e) {
-  if (e.target === e.currentTarget) emit('close')
+  if (props.closable && e.target === e.currentTarget) emit('close')
 }
 </script>
 

@@ -116,6 +116,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
           <input
             v-model="rangeValue"
             type="range"
+            class="ctl-range"
             min="0"
             max="100"
             step="20"
@@ -155,17 +156,17 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
         </div>
       </div>
 
-      <div class="night-card">
-        <button class="night-head" @click="nightOpen = !nightOpen">
-          <i class="ph ph-moon-stars night-icon"></i>
-          <span class="night-copy">
-            <span class="night-title">{{ t('light.night') }}</span>
-            <span class="night-sub">{{ nightEnabled ? t('light.nightOnSub') : t('light.nightOffSub') }}</span>
+      <div class="collapse-card">
+        <button class="collapse-head" @click="nightOpen = !nightOpen">
+          <i class="ph ph-moon-stars collapse-icon"></i>
+          <span class="collapse-copy">
+            <span class="collapse-title">{{ t('light.night') }}</span>
+            <span class="collapse-sub">{{ nightEnabled ? t('light.nightOnSub') : t('light.nightOffSub') }}</span>
           </span>
-          <span class="night-value" :class="{ on: nightEnabled }">{{ nightValue }}</span>
-          <i :class="nightOpen ? 'ph ph-caret-up' : 'ph ph-caret-down'" class="night-caret"></i>
+          <span class="collapse-value" :class="{ on: nightEnabled }">{{ nightValue }}</span>
+          <i :class="nightOpen ? 'ph ph-caret-up' : 'ph ph-caret-down'" class="collapse-caret"></i>
         </button>
-        <div v-if="nightOpen" class="night-detail">
+        <div v-if="nightOpen" class="collapse-detail">
           <div class="night-grid">
             <label class="night-select">{{ t('sched.start') }}
               <select v-model="nightStart">
@@ -186,7 +187,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
         </div>
       </div>
 
-      <span class="light-note">{{ t('light.note') }}</span>
+      <span class="sheet-note">{{ t('light.note') }}</span>
     </div>
   </SheetFrame>
 </template>
@@ -252,39 +253,8 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   border-radius: 4px;
   background: currentColor;
 }
-.orb-btn {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
-  cursor: pointer;
-}
-.orb {
-  width: 72px; height: 72px;
-  border-radius: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: box-shadow 0.2s, background 0.2s;
-}
-.orb i {
-  font-size: 32px;
-  transition: color 0.2s;
-}
-.orb-hint {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.8px;
-  color: var(--color-accent-300);
-  white-space: nowrap;
-}
-.orb-hint i { font-size: 12px; }
+/* 조명 오브 아이콘 크기 (공용 .orb는 아이콘 크기를 정하지 않는다) */
+.orb i { font-size: 32px; }
 
 .range-block {
   display: flex;
@@ -296,32 +266,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   align-items: center;
   height: 44px;
 }
-.range-row input[type='range'] {
-  width: 100%;
-  min-width: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 18px;
-  background-color: transparent;
-  background-size: 100% 8px;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.range-row input[type='range']::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: transparent;
-}
-.range-row input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px; height: 22px;
-  margin-top: -9px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
+.range-row input { width: 100%; min-width: 0; }
 .tick-row {
   position: relative;
   height: 20px;
@@ -346,130 +291,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   font-variant-numeric: tabular-nums;
 }
 
-.preset-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.preset-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.preset-config {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--color-accent-300);
-  font-size: 11.8px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.preset-config i { font-size: 13px; }
-.preset-row {
-  display: flex;
-  gap: 8px;
-}
-.preset-btn {
-  flex: 1;
-  height: 56px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: var(--color-neutral-900);
-  color: var(--color-neutral-300);
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-.preset-btn.on {
-  border-color: var(--color-accent-700);
-  background: var(--color-accent-900);
-  color: var(--color-accent);
-}
-.preset-top {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-}
-.preset-top i { font-size: 15px; }
-.preset-top .save-mark {
-  font-size: 13px;
-  color: var(--color-accent-300);
-}
-.preset-top .bold { font-weight: 800; }
-.preset-sub {
-  font-size: 10.5px;
-  color: var(--color-neutral-500);
-  font-variant-numeric: tabular-nums;
-}
-
-/* — 나이트 모드 — */
-.night-card {
-  border-radius: 12px;
-  background: var(--color-neutral-900);
-  display: flex;
-  flex-direction: column;
-}
-.night-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--color-text);
-  text-align: left;
-}
-.night-icon {
-  flex: none;
-  font-size: 17px;
-  color: var(--color-neutral-400);
-}
-.night-copy {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.night-title {
-  font-size: 13.5px;
-  font-weight: 700;
-}
-.night-sub {
-  font-size: 11.3px;
-  color: var(--color-neutral-500);
-}
-.night-value {
-  flex: none;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--color-neutral-500);
-  white-space: nowrap;
-}
-.night-value.on { color: var(--color-accent); }
-.night-caret {
-  flex: none;
-  font-size: 13px;
-  color: var(--color-neutral-600);
-}
-.night-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 0 16px 14px;
-}
+/* — 나이트 모드 세부 — */
 .night-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -513,11 +335,5 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   border-color: var(--color-neutral-700);
   background: transparent;
   color: var(--color-neutral-300);
-}
-
-.light-note {
-  font-size: 11.8px;
-  line-height: 1.5;
-  color: var(--color-neutral-400);
 }
 </style>

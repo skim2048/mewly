@@ -118,7 +118,6 @@ export const messages = {
 
   'clips.preset.today': { en: 'Today', ko: '오늘' },
   'clips.preset.yesterday': { en: 'Yesterday', ko: '어제' },
-  'clips.selectedCount': { en: '{count} selected', ko: '{count}개 선택됨' },
 
   'player.play': { en: 'Play', ko: '재생' },
   'player.pause': { en: 'Pause', ko: '일시정지' },
@@ -140,7 +139,6 @@ export const messages = {
   'live.ptz.stop': { en: 'Stop movement', ko: '움직임 정지' },
   'live.ptz.zoom': { en: 'Zoom', ko: '줌' },
   'live.ptz.speed': { en: 'Move speed', ko: '이동 속도' },
-  'live.ptz.speedSlow': { en: 'Slow', ko: '저속' },
   'live.ptz.speedNormal': { en: 'Normal', ko: '보통' },
   'live.ptz.speedFast': { en: 'Fast', ko: '고속' },
   'live.ptz.presets': { en: 'Presets', ko: '프리셋' },
@@ -161,10 +159,6 @@ export const messages = {
   'live.ptz.gotoEmpty': {
     en: 'No saved position in this slot.',
     ko: '저장된 위치가 없습니다.',
-  },
-  'live.connectingCancel': {
-    en: '{protocol} connecting · click to cancel',
-    ko: '{protocol} 연결 중 · 클릭하여 취소',
   },
   'live.disconnect': { en: 'Disconnect', ko: '연결 해제' },
   'live.fullscreen.enter': { en: 'Full screen', ko: '전체 화면' },
@@ -364,7 +358,10 @@ export const messages = {
   'ptz.patrolSub': { en: 'Cycles through the presets in order', ko: '프리셋을 순서대로 순회합니다' },
   'ptz.patrolInterval': { en: 'Switch interval', ko: '전환 간격' },
   'ptz.patrolOff': { en: 'Off', ko: '사용 안 함' },
+  'ptz.patrolOffSub': { en: 'Not in use', ko: '사용하지 않습니다' },
 
+  // @claude toast.* 3종은 기기 제어(조명·온도·마이크·순찰) 실패 안내로,
+  // @claude 목업 단계에서는 발화 지점이 없다. 실기기 연동 시 배선한다.
   'toast.timeout': {
     en: 'The device is not responding. Try again in a moment.',
     ko: '기기가 응답하지 않습니다. 잠시 후 다시 시도하세요.',

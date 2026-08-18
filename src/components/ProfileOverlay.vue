@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { useProfile, BREEDS, BREED_OTHER, breedLabel } from '../composables/useProfile.js'
+import OverlayFrame from './OverlayFrame.vue'
 
 const emit = defineEmits(['close'])
 
@@ -17,7 +18,7 @@ const breedList = computed(() => {
     .filter((b) => !q || b.ko.toLowerCase().includes(q) || b.en.toLowerCase().includes(q))
     .map((b) => ({
       value: b.ko,
-      label: locale.value === 'en' ? b.en : b.ko,
+      label: breedLabel(b.ko, locale.value),
       current: b.ko === profile.value.breed,
     }))
 })
@@ -31,106 +32,72 @@ function pickBreed(value) {
 </script>
 
 <template>
-  <div class="profile-overlay">
+  <!-- 견종 선택 모드 -->
+  <OverlayFrame
+    v-if="breedMode"
+    :title="t('breed.pick')"
+    icon="back"
+    @close="breedMode = false"
+  >
+    <div class="breed-search">
+      <i class="ph ph-magnifying-glass"></i>
+      <input v-model="breedQuery" :placeholder="t('breed.searchPh')">
+    </div>
+    <div class="breed-list">
+      <div v-if="breedEmpty" class="breed-none">
+        <span class="breed-none-text">{{ t('breed.none', { q: breedQuery.trim() }) }}</span>
+        <span class="breed-none-hint">{{ t('breed.hint') }}</span>
+        <button class="breed-etc" @click="pickBreed(BREED_OTHER.ko)">{{ t('breed.saveEtc') }}</button>
+      </div>
+      <button
+        v-for="b in breedList"
+        :key="b.value"
+        class="breed-item"
+        @click="pickBreed(b.value)"
+      >
+        <span>{{ b.label }}</span>
+        <i v-if="b.current" class="ph-fill ph-check-circle"></i>
+      </button>
+    </div>
+  </OverlayFrame>
 
-    <!-- 견종 선택 모드 -->
-    <template v-if="breedMode">
-      <div class="overlay-head">
-        <button class="head-btn" @click="breedMode = false"><i class="ph ph-arrow-left"></i></button>
-        <span class="head-title">{{ t('breed.pick') }}</span>
+  <!-- 프로필 편집 모드 -->
+  <OverlayFrame v-else :title="t('profile.title')" icon="x" @close="emit('close')">
+    <template #actions>
+      <button class="head-save" @click="emit('close')">{{ t('common.save') }}</button>
+    </template>
+    <div class="profile-body">
+      <div class="photo-block">
+        <span class="photo-wrap">
+          <span class="photo"><i class="ph ph-dog"></i></span>
+          <span class="photo-edit"><i class="ph ph-camera"></i></span>
+        </span>
+        <span class="photo-hint">{{ t('profile.photoHint') }}</span>
       </div>
-      <div class="breed-search">
-        <i class="ph ph-magnifying-glass"></i>
-        <input v-model="breedQuery" :placeholder="t('breed.searchPh')">
-      </div>
-      <div class="breed-list">
-        <div v-if="breedEmpty" class="breed-none">
-          <span class="breed-none-text">{{ t('breed.none', { q: breedQuery.trim() }) }}</span>
-          <span class="breed-none-hint">{{ t('breed.hint') }}</span>
-          <button class="breed-etc" @click="pickBreed(BREED_OTHER.ko)">{{ t('breed.saveEtc') }}</button>
-        </div>
-        <button
-          v-for="b in breedList"
-          :key="b.value"
-          class="breed-item"
-          @click="pickBreed(b.value)"
-        >
-          <span>{{ b.label }}</span>
-          <i v-if="b.current" class="ph-fill ph-check-circle"></i>
+
+      <label class="field">{{ t('profile.name') }}
+        <input v-model="profile.name">
+        <span>{{ t('profile.nameHint') }}</span>
+      </label>
+
+      <div class="field">{{ t('profile.breed') }}
+        <button class="field-row" @click="breedMode = true">
+          <span class="field-value">{{ breedLabel(profile.breed, locale) }}</span>
+          <span class="field-note">{{ t('common.change') }}</span>
         </button>
       </div>
-    </template>
 
-    <!-- 프로필 편집 모드 -->
-    <template v-else>
-      <div class="overlay-head">
-        <button class="head-btn" @click="emit('close')"><i class="ph ph-x"></i></button>
-        <span class="head-title">{{ t('profile.title') }}</span>
-        <button class="head-save" @click="emit('close')">{{ t('common.save') }}</button>
+      <div class="field">{{ t('profile.birth') }}
+        <span class="field-row static">
+          <span class="field-value">{{ birthLabel }}</span>
+          <span class="field-note">{{ t('profile.age', { n: ageYears }) }}</span>
+        </span>
       </div>
-      <div class="profile-body">
-        <div class="photo-block">
-          <span class="photo-wrap">
-            <span class="photo"><i class="ph ph-dog"></i></span>
-            <span class="photo-edit"><i class="ph ph-camera"></i></span>
-          </span>
-          <span class="photo-hint">{{ t('profile.photoHint') }}</span>
-        </div>
-
-        <label class="field">{{ t('profile.name') }}
-          <input v-model="profile.name">
-          <span>{{ t('profile.nameHint') }}</span>
-        </label>
-
-        <div class="field">{{ t('profile.breed') }}
-          <button class="field-row" @click="breedMode = true">
-            <span class="field-value">{{ breedLabel(profile.breed, locale) }}</span>
-            <span class="field-note">{{ t('common.change') }}</span>
-          </button>
-        </div>
-
-        <div class="field">{{ t('profile.birth') }}
-          <span class="field-row static">
-            <span class="field-value">{{ birthLabel }}</span>
-            <span class="field-note">{{ t('profile.age', { n: ageYears }) }}</span>
-          </span>
-        </div>
-      </div>
-    </template>
-
-  </div>
+    </div>
+  </OverlayFrame>
 </template>
 
 <style scoped>
-.profile-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 160;
-  background: var(--color-bg);
-  display: flex;
-  flex-direction: column;
-}
-.overlay-head {
-  flex: none;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px 0 8px;
-}
-.head-btn {
-  width: 44px; height: 44px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 19px;
-  cursor: pointer;
-}
-.head-title {
-  flex: 1;
-  font-size: 17px;
-  font-weight: 700;
-}
 .head-save {
   height: 38px;
   padding: 0 16px;

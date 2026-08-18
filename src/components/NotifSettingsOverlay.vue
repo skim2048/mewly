@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { useNotifSettings } from '../composables/useNotifSettings.js'
+import OverlayFrame from './OverlayFrame.vue'
 import ToggleSwitch from './ToggleSwitch.vue'
 
 const emit = defineEmits(['close'])
@@ -20,12 +21,7 @@ const abnOn = computed({
 </script>
 
 <template>
-  <div class="notifset-overlay">
-    <div class="overlay-head">
-      <button class="head-btn" @click="emit('close')"><i class="ph ph-arrow-left"></i></button>
-      <span class="head-title">{{ t('notif.title') }}</span>
-    </div>
-
+  <OverlayFrame :title="t('notif.title')" icon="back" @close="emit('close')">
     <div class="notifset-body">
       <div v-if="!permissionGranted" class="notice-box">
         <i class="ph ph-bell-slash"></i>
@@ -53,40 +49,10 @@ const abnOn = computed({
         </div>
       </div>
     </div>
-  </div>
+  </OverlayFrame>
 </template>
 
 <style scoped>
-.notifset-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 160;
-  background: var(--color-bg);
-  display: flex;
-  flex-direction: column;
-}
-.overlay-head {
-  flex: none;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px 0 8px;
-}
-.head-btn {
-  width: 44px; height: 44px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 19px;
-  cursor: pointer;
-}
-.head-title {
-  flex: 1;
-  font-size: 17px;
-  font-weight: 700;
-}
-
 .notifset-body {
   flex: 1;
   min-height: 0;

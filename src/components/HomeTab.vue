@@ -12,6 +12,7 @@ import { useStreamStats } from '../composables/useStreamStats.js'
 import { usePtz } from '../composables/usePtz.js'
 import { getHlsUrl, getWhepUrl, APP_ENDPOINTS } from '../endpoints.js'
 import { authFetch } from '../composables/useFetch.js'
+import { withDayHeaders } from '../composables/dates.js'
 
 const emit = defineEmits(['open-sheet', 'open-modal', 'go-records'])
 
@@ -111,27 +112,14 @@ const latestTone = computed(() => {
 const showLogs = computed(() => vlmKind.value !== 'err' && inferLog.length > 0)
 const prevLogs = computed(() => (showLogs.value ? inferLog.slice(1, 11) : []))
 
-function localDate(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 // @claude 시안: 날짜가 바뀌는 지점에만 구분선을 넣되 오늘은 생략하고,
 // @claude 어제는 문구로, 그보다 이전은 YY-MM-DD로 표기한다. (전체화면 패널)
-const fsLogEntries = computed(() => {
-  const today = localDate()
-  const yesterday = localDate(-1)
-  let prevDay = null
-  return inferLog.map((entry) => {
-    let header = null
-    if (entry.day !== prevDay && entry.day !== today) {
-      header = entry.day === yesterday ? t('dashboard.day.yesterday') : entry.day.slice(2)
-    }
-    prevDay = entry.day
-    return { ...entry, header }
-  })
-})
+const fsLogEntries = computed(() =>
+  withDayHeaders(inferLog, (entry) => entry.day, (day, { isToday, isYesterday }) => {
+    if (isToday) return null
+    return isYesterday ? t('dashboard.day.yesterday') : day.slice(2)
+  }),
+)
 
 // ── 기기 제어 버튼 (조명·온도·마이크는 목업, PTZ는 실동작) ──
 const deviceButtons = [
@@ -158,6 +146,13 @@ function padUp() {
   padPressing.value = null
   stopMove()
 }
+// @claude 패드가 눌린 채 v-if 조건 변화(회전·스트림 단절)나 컴포넌트 파괴로
+// @claude 사라지면 pointerup이 오지 않으므로, 표시 조건이 꺼지는 즉시 정지
+// @claude 명령을 보내 카메라가 계속 회전하는 것을 막는다.
+const padVisible = computed(() => fullscreen.value && ptzEnabled.value && isPlaying.value)
+watch(padVisible, (visible) => {
+  if (!visible) padUp()
+})
 
 // ── Stream (client/web LiveStream과 동일한 연결 논리) ──
 
@@ -173,12 +168,10 @@ const RETRY_BACKOFF = 3000
 
 // @claude The preference is shared with the top bar's segmented control.
 const { preferredProtocol } = useStreamProtocol()
-const activeProtocol = ref(preferredProtocol.value)
-const isWebRTC = computed(() => activeProtocol.value === 'webrtc')
+const isWebRTC = computed(() => preferredProtocol.value === 'webrtc')
 const isPlaying = computed(() => connected.value && !loading.value && !stopped.value)
 
-watch(preferredProtocol, (protocol) => {
-  activeProtocol.value = protocol
+watch(preferredProtocol, () => {
   if (stopped.value) return
   restartStream()
 })
@@ -191,13 +184,12 @@ const { stats, startStats, stopStats } = useStreamStats({
 })
 
 const streamMeta = computed(() =>
-  `${activeProtocol.value.toUpperCase()} · ${stats.resolution || '–'} · ${stats.fps || 0} FPS`,
+  `${preferredProtocol.value.toUpperCase()} · ${stats.resolution || '–'} · ${stats.fps || 0} FPS`,
 )
 
 function handleConnect() {
   stopped.value = false
   connecting.value = true
-  resetRuntimeProtocol()
   restartStream()
 }
 
@@ -207,12 +199,7 @@ function handleDisconnect() {
   disconnect()
 }
 
-function resetRuntimeProtocol() {
-  activeProtocol.value = preferredProtocol.value
-}
-
-function restartStream({ resetProtocol = false } = {}) {
-  if (resetProtocol) resetRuntimeProtocol()
+function restartStream() {
   destroyAll()
   initStream()
 }
@@ -471,6 +458,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   landscapeMq?.removeEventListener('change', onOrientationChange)
+  padUp()
   destroyAll()
 })
 </script>
@@ -590,7 +578,8 @@ onBeforeUnmount(() => {
         <i :class="d.icon"></i>
         <span>{{ d.label() }}</span>
       </button>
-      <button class="dev-btn" @click="emit('open-sheet', 'ptz')">
+      <!-- 낙관적 활성 정책: PTZ 포트 미입력(=미지원)만 사전 비활성 -->
+      <button class="dev-btn" :disabled="!ptzEnabled" @click="emit('open-sheet', 'ptz')">
         <i class="ph ph-crosshair"></i>
         <span>PTZ</span>
       </button>
@@ -955,6 +944,10 @@ onBeforeUnmount(() => {
 .dev-btn i { font-size: 17px; }
 .dev-btn span { font-size: 11px; }
 .dev-btn:active { background: var(--color-neutral-800); }
+.dev-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 
 /* — VLM 상태 카드 — */
 .vlm-card {

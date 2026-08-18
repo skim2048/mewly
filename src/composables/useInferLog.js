@@ -1,5 +1,6 @@
 import { effectScope, reactive, readonly, watch } from 'vue'
 import { useSSE } from './useSSE.js'
+import { toIsoDate } from './dates.js'
 
 // @claude The right-hand panel lists inference reports over time, but the
 // @claude backend stores only keyword events (/events: trigger + clip).
@@ -12,10 +13,6 @@ const MAX_LOG = 100
 const entries = reactive([])
 let started = false
 let nextId = 1
-
-function localDate(now) {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-}
 
 export function useInferLog() {
   if (!started) {
@@ -32,7 +29,7 @@ export function useInferLog() {
         entries.unshift({
           id: nextId++,
           time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
-          day: localDate(now),
+          day: toIsoDate(now),
           text,
           event: state.event_triggered,
         })

@@ -5,6 +5,8 @@ import {
   useSchedules, CATEGORIES, CATEGORY_CUSTOM, ALARM_OPTIONS, REPEAT_OPTIONS, REPEAT_NONE, optionLabel,
 } from '../composables/useSchedules.js'
 import { useNotifSettings } from '../composables/useNotifSettings.js'
+import { parseIsoDate } from '../composables/dates.js'
+import OverlayFrame from './OverlayFrame.vue'
 import ToggleSwitch from './ToggleSwitch.vue'
 
 const props = defineProps({
@@ -30,18 +32,20 @@ const form = ref(editing
     alarm: editing.alarm,
     repeat: editing.repeat,
   }
-  : { cat: null, custom: '', allDay: false, start: '15:00', end: '16:00', alarm: '10분 전', repeat: REPEAT_NONE })
+  : { cat: null, custom: '', allDay: false, start: '15:00', end: '16:00', alarm: ALARM_OPTIONS[2].v, repeat: REPEAT_NONE })
 const error = ref('')
 
 const dateLabel = computed(() =>
-  formatDateTime(new Date(props.date), { month: 'long', day: 'numeric' }),
+  formatDateTime(parseIsoDate(props.date), { month: 'long', day: 'numeric' }),
 )
 
-const catChips = computed(() => [...CATEGORIES, CATEGORY_CUSTOM].map((c) => ({
+const CAT_ALL = [...CATEGORIES, CATEGORY_CUSTOM]
+const catChips = computed(() => CAT_ALL.map((c) => ({
   value: c.ko,
-  label: locale.value === 'en' ? c.en : c.ko,
+  label: optionLabel(CAT_ALL, c.ko, locale.value),
   custom: c.ko === CATEGORY_CUSTOM.ko,
 })))
+const isCustomCat = computed(() => form.value.cat === CATEGORY_CUSTOM.ko)
 
 const timeOptions = (() => {
   const list = []
@@ -84,12 +88,10 @@ function remove() {
 </script>
 
 <template>
-  <div class="sched-editor">
-    <div class="overlay-head">
-      <button class="head-btn" @click="emit('close')"><i class="ph ph-x"></i></button>
-      <span class="head-title">{{ editing ? t('sched.edit') : t('sched.new') }}</span>
+  <OverlayFrame :title="editing ? t('sched.edit') : t('sched.new')" icon="x" @close="emit('close')">
+    <template #actions>
       <button class="head-save" @click="save">{{ t('common.save') }}</button>
-    </div>
+    </template>
 
     <div class="editor-body">
       <span class="date-label">{{ dateLabel }}</span>
@@ -111,7 +113,7 @@ function remove() {
           >{{ c.label }}</button>
         </div>
         <input
-          v-if="form.cat === '직접 입력'"
+          v-if="isCustomCat"
           v-model="form.custom"
           class="custom-input"
           :placeholder="t('sched.customPh')"
@@ -165,39 +167,10 @@ function remove() {
 
       <button v-if="editing" class="delete-btn" @click="remove">{{ t('sched.delete') }}</button>
     </div>
-  </div>
+  </OverlayFrame>
 </template>
 
 <style scoped>
-.sched-editor {
-  position: fixed;
-  inset: 0;
-  z-index: 160;
-  background: var(--color-bg);
-  display: flex;
-  flex-direction: column;
-}
-.overlay-head {
-  flex: none;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px 0 8px;
-}
-.head-btn {
-  width: 44px; height: 44px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 19px;
-  cursor: pointer;
-}
-.head-title {
-  flex: 1;
-  font-size: 17px;
-  font-weight: 700;
-}
 .head-save {
   height: 38px;
   padding: 0 16px;

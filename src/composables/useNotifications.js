@@ -1,14 +1,13 @@
 import { computed } from 'vue'
 import { persistentRef } from './storage.js'
+import { toIsoDate } from './dates.js'
 
 // @claude 알림함. 실서비스에서는 이상행동(SSE 사건)과 일정 알람이 항목을
 // @claude 추가하지만, 백엔드 인터페이스 도출 전이므로 시드 데이터로 형태만
 // @claude 시연한다. kind: 'abn'(이상행동) | 'sched'(일정 알람).
 
 function seedAt(dayOffset, time) {
-  const d = new Date()
-  d.setDate(d.getDate() + dayOffset)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${time}:00`
+  return `${toIsoDate(new Date(), dayOffset)}T${time}:00`
 }
 
 const SEED = [

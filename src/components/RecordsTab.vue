@@ -1,11 +1,18 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useClips } from '../composables/useClips.js'
 import { useAuth } from '../composables/useAuth.js'
 import { authFetch } from '../composables/useFetch.js'
 import { API_ENDPOINTS, getClipUrl } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
+import { toIsoDate, withDayHeaders } from '../composables/dates.js'
 import ClipPlayerModal from './ClipPlayerModal.vue'
+
+// @claude dateRequest: 달력 「이날의 기록 보기」의 교차 진입. 매번 새 객체
+// @claude {date}로 전달되어 같은 날짜를 연달아 요청해도 watch가 발화한다.
+const props = defineProps({
+  dateRequest: { type: Object, default: null },
+})
 
 const { clipVersion, deleteClips } = useClips()
 const { isAuthenticated, accessToken } = useAuth()
@@ -13,13 +20,8 @@ const { t } = useLocale()
 
 // ── Filter (시안: 검색 + 기간 칩 일·주·월·분기·연도) ──
 const searchQuery = ref('')
-const period = ref('week')
-
-function localDate(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+const period = ref('week') // '' = 전체 기간 (활성 칩 재탭으로 해제)
+const dateFilter = ref(null) // 달력 교차 진입 시의 단일 날짜 필터
 
 const PERIODS = [
   { key: 'day', label: () => t('rec.period.day') },
@@ -29,16 +31,22 @@ const PERIODS = [
   { key: 'year', label: () => t('rec.period.year') },
 ]
 
+// @claude 활성 칩을 다시 누르면 해제되어 전체 기간이 된다 — 기간 칩만으로는
+// @claude 지난해 이전 클립에 접근할 수 없으므로 전체 기간 진입로를 남긴다.
+function pickPeriod(key) {
+  dateFilter.value = null
+  period.value = period.value === key ? '' : key
+}
+
 // 기간 칩 → 서버 질의 범위. 시안의 상대 구간(오늘 기준)을 따른다.
 function periodRange(key) {
   const now = new Date()
-  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   switch (key) {
-    case 'day': return [localDate(), localDate()]
-    case 'week': return [localDate(-6), localDate()]
-    case 'month': return [iso(new Date(now.getFullYear(), now.getMonth(), 1)), localDate()]
-    case 'quarter': return [iso(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)), localDate()]
-    case 'year': return [iso(new Date(now.getFullYear(), 0, 1)), localDate()]
+    case 'day': return [toIsoDate(), toIsoDate()]
+    case 'week': return [toIsoDate(now, -6), toIsoDate()]
+    case 'month': return [toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1)), toIsoDate()]
+    case 'quarter': return [toIsoDate(new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)), toIsoDate()]
+    case 'year': return [toIsoDate(new Date(now.getFullYear(), 0, 1)), toIsoDate()]
     default: return ['', '']
   }
 }
@@ -93,24 +101,31 @@ const clips = ref([])
 const total = ref(0)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 
+// @claude 응답 순서 보장: 필터 전환 중 늦게 도착한 이전 질의의 응답이 현재
+// @claude 목록을 덮어쓰지 않도록, 최신 요청 번호가 아닌 응답은 폐기한다.
+let fetchSeq = 0
+
 async function fetchClips() {
   if (!isAuthenticated.value) return
+  const mySeq = ++fetchSeq
   const params = new URLSearchParams()
   if (searchQuery.value) params.set('q', searchQuery.value)
-  const [from, to] = periodRange(period.value)
+  const [from, to] = dateFilter.value
+    ? [dateFilter.value, dateFilter.value]
+    : periodRange(period.value)
   if (from) params.set('date_from', from)
   if (to) params.set('date_to', to)
   params.set('limit', String(PAGE_SIZE))
   params.set('offset', String((currentPage.value - 1) * PAGE_SIZE))
   try {
     const res = await authFetch(`${API_ENDPOINTS.clips}?${params}`)
-    if (!res.ok) return
+    if (mySeq !== fetchSeq || !res.ok) return
     const data = await res.json()
+    if (mySeq !== fetchSeq) return
     clips.value = data.clips || []
     total.value = data.total ?? 0
-    const maxPage = Math.max(1, Math.ceil(total.value / PAGE_SIZE))
-    if (currentPage.value > maxPage) {
-      currentPage.value = maxPage
+    if (currentPage.value > totalPages.value) {
+      currentPage.value = totalPages.value
       return
     }
     const names = new Set(clips.value.map((c) => c.name))
@@ -138,41 +153,42 @@ watch(searchQuery, () => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => scheduleFetch(true), 300)
 })
-watch(period, () => scheduleFetch(true))
+watch([period, dateFilter], () => scheduleFetch(true))
 watch(currentPage, () => scheduleFetch(false))
+watch(() => props.dateRequest, (req) => {
+  if (req?.date) dateFilter.value = req.date
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+  fetchSeq++ // 진행 중 응답 폐기
+})
 
 // ── Presentation (시안: 날짜 헤더로 그룹, 행 = 섬네일 + 시각 + 문장) ──
 function clipDay(clip) {
   const parsed = new Date(clip.created_at)
-  if (Number.isNaN(parsed.getTime())) return ''
-  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`
+  return Number.isNaN(parsed.getTime()) ? '' : toIsoDate(parsed)
 }
 
 const rows = computed(() => {
-  const today = localDate()
-  const yesterday = localDate(-1)
-  let prevDay = null
-  return clips.value.map((clip) => {
-    const day = clipDay(clip)
-    let header = null
-    if (day !== prevDay) {
-      const short = day.slice(2)
-      if (day === today) header = `${t('clips.preset.today')} · ${short}`
-      else if (day === yesterday) header = `${t('clips.preset.yesterday')} · ${short}`
-      else header = short
-    }
-    prevDay = day
+  const enriched = clips.value.map((clip) => {
     const parsed = new Date(clip.created_at)
     const time = Number.isNaN(parsed.getTime())
       ? ''
       : `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`
     return {
       ...clip,
-      header,
+      day: clipDay(clip),
       time,
       text: clip.keywords?.length ? clip.keywords.join(', ') : clip.name,
       picked: selected.value.has(clip.name),
     }
+  })
+  return withDayHeaders(enriched, (r) => r.day, (day, { isToday, isYesterday }) => {
+    const short = day.slice(2)
+    if (isToday) return `${t('clips.preset.today')} · ${short}`
+    if (isYesterday) return `${t('clips.preset.yesterday')} · ${short}`
+    return short
   })
 })
 
@@ -190,14 +206,22 @@ function thumbUrl(clip) {
     </div>
 
     <div class="rec-controls">
-      <span class="period-pill" :class="{ dim: selectMode }">
+      <!-- 달력 교차 진입 시: 단일 날짜 칩 (해제하면 기간 칩으로 복귀) -->
+      <button
+        v-if="dateFilter"
+        class="date-chip"
+        :class="{ dim: selectMode }"
+        :disabled="selectMode"
+        @click="dateFilter = null"
+      >{{ dateFilter.slice(2) }}<i class="ph ph-x"></i></button>
+      <span v-else class="period-pill" :class="{ dim: selectMode }">
         <button
           v-for="p in PERIODS"
           :key="p.key"
           class="period-opt"
           :class="{ on: period === p.key }"
           :disabled="selectMode"
-          @click="period = p.key"
+          @click="pickPeriod(p.key)"
         >{{ p.label() }}</button>
       </span>
       <template v-if="!selectMode">
@@ -306,6 +330,25 @@ function thumbUrl(clip) {
   white-space: nowrap;
 }
 .period-pill.dim { opacity: 0.45; }
+.date-chip {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 100px;
+  border: 1px solid var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.date-chip i { font-size: 12px; }
+.date-chip.dim { opacity: 0.45; }
 .period-opt {
   height: 30px;
   padding: 0 12px;

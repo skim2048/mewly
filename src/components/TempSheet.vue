@@ -107,6 +107,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
           <input
             v-model="target"
             type="range"
+            class="ctl-range"
             min="16"
             max="30"
             step="1"
@@ -149,7 +150,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
         </div>
       </div>
 
-      <span class="temp-note">{{ t('temp.note') }}</span>
+      <span class="sheet-note">{{ t('temp.note') }}</span>
     </div>
   </SheetFrame>
 </template>
@@ -223,37 +224,6 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   background: var(--color-accent-900);
   color: var(--color-accent);
 }
-.orb-btn {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: inherit;
-  cursor: pointer;
-}
-.orb {
-  width: 72px; height: 72px;
-  border-radius: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: box-shadow 0.2s, background 0.2s;
-}
-.orb i { transition: color 0.2s; }
-.orb-hint {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.8px;
-  color: var(--color-accent-300);
-  white-space: nowrap;
-}
-.orb-hint i { font-size: 12px; }
-
 .range-block {
   display: flex;
   flex-direction: column;
@@ -264,32 +234,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   align-items: center;
   height: 44px;
 }
-.range-row input[type='range'] {
-  width: 100%;
-  min-width: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 18px;
-  background-color: transparent;
-  background-size: 100% 8px;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.range-row input[type='range']::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: transparent;
-}
-.range-row input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px; height: 22px;
-  margin-top: -9px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
+.range-row input { width: 100%; min-width: 0; }
 .tick-row {
   position: relative;
   height: 5px;
@@ -316,78 +261,4 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   letter-spacing: 0.04em;
 }
 
-.preset-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.preset-head {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-.preset-config {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--color-accent-300);
-  font-size: 11.8px;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.preset-config i { font-size: 13px; }
-.preset-row {
-  display: flex;
-  gap: 8px;
-}
-.preset-btn {
-  flex: 1;
-  height: 56px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: var(--color-neutral-900);
-  color: var(--color-neutral-300);
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-.preset-btn.on {
-  border-color: var(--color-accent-700);
-  background: var(--color-accent-900);
-  color: var(--color-accent);
-}
-.preset-top {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-}
-.preset-top i { font-size: 15px; }
-.preset-top .save-mark {
-  font-size: 13px;
-  color: var(--color-accent-300);
-}
-.preset-top .bold { font-weight: 800; }
-.preset-sub {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  color: var(--color-neutral-500);
-  font-variant-numeric: tabular-nums;
-}
-
-.temp-note {
-  font-size: 11.8px;
-  line-height: 1.5;
-  color: var(--color-neutral-400);
-}
 </style>

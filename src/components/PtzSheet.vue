@@ -167,17 +167,17 @@ function onClose() {
       </div>
 
       <!-- 자동 순찰 — 백엔드 미지원, 형태만 -->
-      <div class="patrol-card">
-        <button class="patrol-head" @click="patrolOpen = !patrolOpen">
-          <i class="ph ph-path patrol-icon"></i>
-          <span class="patrol-copy">
-            <span class="patrol-title">{{ t('ptz.patrol') }}</span>
-            <span class="patrol-sub">{{ patrol.enabled ? t('ptz.patrolSub') : t('light.nightOffSub') }}</span>
+      <div class="collapse-card">
+        <button class="collapse-head" @click="patrolOpen = !patrolOpen">
+          <i class="ph ph-path collapse-icon"></i>
+          <span class="collapse-copy">
+            <span class="collapse-title">{{ t('ptz.patrol') }}</span>
+            <span class="collapse-sub">{{ patrol.enabled ? t('ptz.patrolSub') : t('ptz.patrolOffSub') }}</span>
           </span>
-          <span class="patrol-value" :class="{ on: patrol.enabled }">{{ patrolValue }}</span>
-          <i :class="patrolOpen ? 'ph ph-caret-up' : 'ph ph-caret-down'" class="patrol-caret"></i>
+          <span class="collapse-value" :class="{ on: patrol.enabled }">{{ patrolValue }}</span>
+          <i :class="patrolOpen ? 'ph ph-caret-up' : 'ph ph-caret-down'" class="collapse-caret"></i>
         </button>
-        <div v-if="patrolOpen" class="patrol-detail">
+        <div v-if="patrolOpen" class="collapse-detail">
           <span class="patrol-label">{{ t('ptz.patrolInterval') }}</span>
           <div class="patrol-grid">
             <button
@@ -403,64 +403,7 @@ function onClose() {
 }
 .ptz-hint.err { color: #e07a86; }
 
-/* — 자동 순찰 — */
-.patrol-card {
-  border-radius: 12px;
-  background: var(--color-neutral-900);
-  display: flex;
-  flex-direction: column;
-}
-.patrol-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--color-text);
-  text-align: left;
-}
-.patrol-icon {
-  flex: none;
-  font-size: 17px;
-  color: var(--color-neutral-400);
-}
-.patrol-copy {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.patrol-title {
-  font-size: 13.5px;
-  font-weight: 700;
-}
-.patrol-sub {
-  font-size: 11.3px;
-  color: var(--color-neutral-500);
-}
-.patrol-value {
-  flex: none;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--color-neutral-500);
-  white-space: nowrap;
-}
-.patrol-value.on { color: var(--color-accent); }
-.patrol-caret {
-  flex: none;
-  font-size: 13px;
-  color: var(--color-neutral-600);
-}
-.patrol-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 0 16px 14px;
-}
+/* — 자동 순찰 세부 — */
 .patrol-label {
   font-size: 11px;
   color: var(--color-neutral-500);

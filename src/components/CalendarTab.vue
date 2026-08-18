@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useLocale, formatDateTime } from '../composables/useLocale.js'
 import { useSchedules, titleLabel, optionLabel, ALARM_OPTIONS, REPEAT_OPTIONS, REPEAT_NONE } from '../composables/useSchedules.js'
+import { toIsoDate, parseIsoDate } from '../composables/dates.js'
 
 const emit = defineEmits(['edit-schedule', 'go-records'])
 
@@ -9,13 +10,26 @@ const { t, locale } = useLocale()
 const { schedulesOn, daysWithSchedules } = useSchedules()
 
 function toIso(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  return toIsoDate(new Date(year, month, day))
 }
 
-const now = new Date()
-const todayIso = toIso(now.getFullYear(), now.getMonth(), now.getDate())
-const cursor = ref({ year: now.getFullYear(), month: now.getMonth() })
-const selected = ref(todayIso)
+// @claude 오늘·현재 시각은 탭을 열어 둔 채 시간이 흘러도 맞아야 하므로
+// @claude 주기적으로 갱신한다(자정 통과 시 오늘 원·교차 진입 가드,
+// @claude 시각 경과 시 다음 일정 강조가 이 값을 따른다).
+function clockNow() {
+  const d = new Date()
+  return {
+    todayIso: toIsoDate(d),
+    nowTime: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+  }
+}
+const clock = ref(clockNow())
+const clockTimer = setInterval(() => { clock.value = clockNow() }, 30000)
+onBeforeUnmount(() => clearInterval(clockTimer))
+
+const initial = clockNow()
+const cursor = ref({ year: new Date().getFullYear(), month: new Date().getMonth() })
+const selected = ref(initial.todayIso)
 
 function moveMonth(delta) {
   const d = new Date(cursor.value.year, cursor.value.month + delta, 1)
@@ -42,7 +56,7 @@ const cells = computed(() => {
   const last = new Date(year, month + 1, 0).getDate()
   for (let n = 1; n <= last; n++) {
     const iso = toIso(year, month, n)
-    list.push({ n, iso, today: iso === todayIso, selected: iso === selected.value, dot: dotDays.has(n) })
+    list.push({ n, iso, today: iso === clock.value.todayIso, selected: iso === selected.value, dot: dotDays.has(n) })
   }
   let trail = 1
   while (list.length % 7 !== 0 || list.length < 42) list.push({ n: trail++, dim: true })
@@ -50,18 +64,17 @@ const cells = computed(() => {
 })
 
 const selectedLabel = computed(() =>
-  formatDateTime(new Date(selected.value), { month: 'long', day: 'numeric', weekday: locale.value === 'ko' ? 'long' : 'short' }),
+  formatDateTime(parseIsoDate(selected.value), { month: 'long', day: 'numeric', weekday: locale.value === 'ko' ? 'long' : 'short' }),
 )
 
 // 기록 교차 진입은 과거·오늘만 (미래의 기록은 존재하지 않음)
-const canCross = computed(() => selected.value <= todayIso)
+const canCross = computed(() => selected.value <= clock.value.todayIso)
 
-const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 const daySchedules = computed(() => {
   const items = schedulesOn(selected.value)
   // 오늘의 다음 일정(현재 시각 이후 첫 항목)을 강조한다 (시안 방식)
-  const nextId = selected.value === todayIso
-    ? items.find((e) => !e.allDay && !e.done && e.time >= nowTime)?.id
+  const nextId = selected.value === clock.value.todayIso
+    ? items.find((e) => !e.allDay && !e.done && e.time >= clock.value.nowTime)?.id
     : null
   return items.map((e) => ({
     ...e,
@@ -109,7 +122,7 @@ const daySchedules = computed(() => {
     <div class="day-list">
       <div class="day-head">
         <span class="day-label">{{ selectedLabel }}</span>
-        <button v-if="canCross" class="day-records" @click="emit('go-records')">
+        <button v-if="canCross" class="day-records" @click="emit('go-records', selected)">
           {{ t('sched.dayRecords') }}
         </button>
       </div>

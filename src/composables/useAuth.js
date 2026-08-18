@@ -384,8 +384,11 @@ export function useAuth() {
     applySession(data, rememberMe ? SESSION_KIND_PERSISTENT : SESSION_KIND_EPHEMERAL)
   }
 
+  // @claude 프라미스를 반환하여 호출자가 서버 측 토큰 해지 완료를 기다릴 수
+  // @claude 있게 한다(예: 서버 주소 변경 — 해지가 구 호스트로 전송된 뒤에
+  // @claude 주소를 바꿔야 한다). 기존 호출자는 반환값을 무시해도 무방하다.
   function logout(options) {
-    void terminateSession(options)
+    return terminateSession(options)
   }
 
   async function extendSession() {

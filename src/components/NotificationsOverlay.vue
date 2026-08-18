@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { useNotifications } from '../composables/useNotifications.js'
+import { withDayHeaders } from '../composables/dates.js'
+import OverlayFrame from './OverlayFrame.vue'
 
 const emit = defineEmits(['close', 'open'])
 
@@ -15,29 +17,15 @@ const filters = [
   { key: 'sched', label: () => t('notif.tab.schedule') },
 ]
 
-function localDate(offsetDays = 0) {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 // @claude 시안: 날짜가 바뀌는 지점에만 구분선을 넣되 오늘은 생략하고,
 // @claude 어제는 문구로, 그보다 이전은 YY-MM-DD로 표기한다.
 const list = computed(() => {
-  const today = localDate()
-  const yesterday = localDate(-1)
-  const filtered = notifications.value.filter(
-    (n) => activeFilter.value === 'all' || n.kind === activeFilter.value,
-  )
-  let prevDay = null
-  return filtered.map((n) => {
-    const day = n.at.slice(0, 10)
-    let header = null
-    if (day !== prevDay && day !== today) {
-      header = day === yesterday ? t('dashboard.day.yesterday') : day.slice(2)
-    }
-    prevDay = day
-    return { ...n, header, time: n.at.slice(11, 16) }
+  const filtered = notifications.value
+    .filter((n) => activeFilter.value === 'all' || n.kind === activeFilter.value)
+    .map((n) => ({ ...n, time: n.at.slice(11, 16) }))
+  return withDayHeaders(filtered, (n) => n.at.slice(0, 10), (day, { isToday, isYesterday }) => {
+    if (isToday) return null
+    return isYesterday ? t('dashboard.day.yesterday') : day.slice(2)
   })
 })
 
@@ -48,12 +36,10 @@ function open(n) {
 </script>
 
 <template>
-  <div class="notif-overlay">
-    <div class="overlay-head">
-      <button class="head-btn" @click="emit('close')"><i class="ph ph-arrow-left"></i></button>
-      <span class="head-title">{{ t('notif.title') }}</span>
+  <OverlayFrame :title="t('notif.title')" icon="back" @close="emit('close')">
+    <template #actions>
       <button class="head-clear" @click="clearAll">{{ t('notif.clearAll') }}</button>
-    </div>
+    </template>
 
     <div class="filter-seg">
       <button
@@ -84,39 +70,10 @@ function open(n) {
         </div>
       </template>
     </div>
-  </div>
+  </OverlayFrame>
 </template>
 
 <style scoped>
-.notif-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 160;
-  background: var(--color-bg);
-  display: flex;
-  flex-direction: column;
-}
-.overlay-head {
-  flex: none;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 10px 0 8px;
-}
-.head-btn {
-  width: 44px; height: 44px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 19px;
-  cursor: pointer;
-}
-.head-title {
-  flex: 1;
-  font-size: 17px;
-  font-weight: 700;
-}
 .head-clear {
   height: 44px;
   border: none;

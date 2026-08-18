@@ -68,6 +68,7 @@ onBeforeUnmount(() => { talking.value = false })
           <input
             v-model="volume"
             type="range"
+            class="ctl-range"
             min="0"
             max="100"
             step="5"
@@ -77,7 +78,7 @@ onBeforeUnmount(() => { talking.value = false })
         </div>
       </div>
 
-      <span class="mic-note">{{ talking ? t('mic.noteTalking') : t('mic.noteIdle') }}</span>
+      <span class="sheet-note">{{ talking ? t('mic.noteTalking') : t('mic.noteIdle') }}</span>
     </div>
   </SheetFrame>
 </template>
@@ -183,36 +184,5 @@ onBeforeUnmount(() => { talking.value = false })
   font-size: 17px;
   color: var(--color-neutral-500);
 }
-.vol-row input[type='range'] {
-  flex: 1;
-  min-width: 0;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 18px;
-  background-color: transparent;
-  background-size: 100% 8px;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.vol-row input[type='range']::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
-  background: transparent;
-}
-.vol-row input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px; height: 22px;
-  margin-top: -9px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
-
-.mic-note {
-  font-size: 11.8px;
-  line-height: 1.5;
-  color: var(--color-neutral-400);
-}
+.vol-row input { flex: 1; min-width: 0; }
 </style>

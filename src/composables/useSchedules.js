@@ -1,4 +1,5 @@
 import { persistentRef } from './storage.js'
+import { parseIsoDate, toIsoDate } from './dates.js'
 
 // @claude 일정은 명시된 날짜(단일 또는 date~endDate 범위)에만 나타난다.
 // @claude 반복(repeat)은 알람 예약 규칙을 뜻하는 메타데이터로, 달력 투영은
@@ -72,13 +73,19 @@ export function useSchedules() {
       .sort((a, b) => ((a.allDay ? '' : a.time) < (b.allDay ? '' : b.time) ? -1 : 1))
   }
 
+  // @claude 날짜 문자열은 반드시 로컬 기준으로 해석하고(parseIsoDate),
+  // @claude 순회는 대상 월과의 교집합으로 한정한다.
   function daysWithSchedules(year, month) {
+    const monthStart = new Date(year, month, 1)
+    const monthEnd = new Date(year, month + 1, 0)
     const days = new Set()
     for (const item of store.value.items) {
-      const from = new Date(item.date)
-      const to = new Date(item.endDate || item.date)
-      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-        if (d.getFullYear() === year && d.getMonth() === month) days.add(d.getDate())
+      const from = parseIsoDate(item.date)
+      const to = parseIsoDate(item.endDate || item.date)
+      const start = from > monthStart ? from : monthStart
+      const end = to < monthEnd ? to : monthEnd
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        days.add(d.getDate())
       }
     }
     return days

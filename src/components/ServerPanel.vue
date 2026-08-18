@@ -1,27 +1,33 @@
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useLocale } from '../composables/useLocale.js'
 import { useAuth } from '../composables/useAuth.js'
 import { getEditableMewlyHost, applyMewlyHost } from '../endpoints.js'
 
 const emit = defineEmits(['close'])
 
+const router = useRouter()
 const { t } = useLocale()
 const { logout } = useAuth()
 
 const host = ref(getEditableMewlyHost())
+const saving = ref(false)
 
-// @claude 시안: 주소 변경은 재로그인을 요구한다. 세션에만 적용해 두고
-// @claude 로그아웃하면, 로그인 화면이 이 값을 미리 채우고 로그인 성공 시
-// @claude 지속한다(기존 applyMewlyHost → persistMewlyHost 흐름).
-function save() {
+// @claude 시안: 주소 변경은 재로그인을 요구한다. 토큰 해지는 반드시 구
+// @claude 호스트로 전송되어야 하므로, 로그아웃(해지) 완료를 기다린 뒤에
+// @claude 새 주소를 세션에 적용한다. 로그인 화면이 이 값을 미리 채우고
+// @claude 로그인 성공 시 지속한다(기존 applyMewlyHost → persistMewlyHost 흐름).
+async function save() {
   const next = host.value.trim()
-  if (next && next !== getEditableMewlyHost()) {
-    applyMewlyHost(next)
-    logout({ redirect: true })
+  if (!next || next === getEditableMewlyHost()) {
+    emit('close')
     return
   }
-  emit('close')
+  saving.value = true
+  await logout({ redirect: false })
+  applyMewlyHost(next)
+  router.push({ name: 'login' })
 }
 </script>
 
@@ -35,8 +41,8 @@ function save() {
       <input v-model="host" spellcheck="false" autocapitalize="off">
     </label>
     <div class="actions">
-      <button class="btn primary" @click="save">{{ t('common.save') }}</button>
-      <button class="btn" @click="emit('close')">{{ t('common.cancel') }}</button>
+      <button class="btn primary" :disabled="saving" @click="save">{{ t('common.save') }}</button>
+      <button class="btn" :disabled="saving" @click="emit('close')">{{ t('common.cancel') }}</button>
     </div>
   </div>
 </template>
@@ -101,6 +107,7 @@ function save() {
   font-family: inherit;
   cursor: pointer;
 }
+.btn:disabled { opacity: 0.5; cursor: default; }
 .btn.primary {
   border: none;
   background: var(--color-accent);
