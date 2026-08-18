@@ -15,12 +15,13 @@ const VLM_KINDS = {
   error: 'err',
 }
 
-// @claude 시안의 VLM 점 색: wait #d9a13b · idle neutral-500 · on accent · err #e07a86.
+// @claude 상태 점 색은 컬러셋 토큰만 사용한다(사용자 방침, 시안의 고정색 대체):
+// @claude wait=연한 액센트, err=최대 대비(text).
 const VLM_DOTS = {
-  wait: '#d9a13b',
+  wait: 'var(--color-accent-300)',
   idle: 'var(--color-neutral-500)',
   on: 'var(--color-accent)',
-  err: '#e07a86',
+  err: 'var(--color-text)',
 }
 
 export function useVlmStatus() {

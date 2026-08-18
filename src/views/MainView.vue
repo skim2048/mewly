@@ -90,11 +90,6 @@ const tabTitle = computed(() => ({
   set: t('tab.settings'),
 }[activeTab.value] || ''))
 
-const protocolOptions = [
-  { key: 'hls', label: 'HLS' },
-  { key: 'webrtc', label: 'WebRTC' },
-]
-
 // @claude 비지속 세션의 잔여 시간. 시안 헤더에는 없으나 만료를 모달로만
 // @claude 인지하게 되는 회귀를 피하기 위해 유지한다(검토 지적 반영).
 const showSessionRemaining = computed(() =>
@@ -125,25 +120,24 @@ onMounted(loadCamera)
 
     <!-- ── Top app bar ── -->
     <header class="topbar">
-      <span v-if="activeTab === 'home'" class="brand">
-        <span class="brand-avatar"><i class="ph ph-dog"></i></span>
-        Mewly
-      </span>
+      <span v-if="activeTab === 'home'" class="brand">Mewly</span>
       <span v-else class="topbar-title">{{ tabTitle }}</span>
 
+      <!-- 세션 잔여 시간: 탭과 무관하게 항상 상단 바 중앙 정렬 -->
+      <span v-if="showSessionRemaining" class="session-chip">
+        <i class="ph ph-clock"></i>{{ sessionRemainingText }}
+      </span>
+
       <span class="topbar-right">
-        <span v-if="showSessionRemaining" class="session-chip">
-          <i class="ph ph-clock"></i>{{ sessionRemainingText }}
-        </span>
-        <div v-if="activeTab === 'home'" class="proto-seg">
-          <button
-            v-for="(p, i) in protocolOptions"
-            :key="p.key"
-            class="proto-opt"
-            :class="{ active: preferredProtocol === p.key, first: i === 0 }"
-            @click="setProtocol(p.key)"
-          >{{ p.label }}</button>
-        </div>
+        <!-- 단일 알약 토글: 현재 프로토콜 표시, 탭하면 반대로 전환 -->
+        <button
+          v-if="activeTab === 'home'"
+          class="proto-toggle"
+          role="switch"
+          :aria-checked="preferredProtocol === 'webrtc'"
+          :title="preferredProtocol === 'hls' ? 'WebRTC' : 'HLS'"
+          @click="setProtocol(preferredProtocol === 'hls' ? 'webrtc' : 'hls')"
+        >{{ preferredProtocol === 'hls' ? 'HLS' : 'WebRTC' }}</button>
         <button class="bell" :title="t('notif.title')" @click="overlay = 'notifications'">
           <i class="ph ph-bell"></i>
           <span v-if="unreadCount" class="bell-badge">{{ unreadCount }}</span>
@@ -244,6 +238,7 @@ onMounted(loadCamera)
 
 /* — top app bar (시안: 58px, 홈=아바타+브랜드, 그 외=탭 제목) — */
 .topbar {
+  position: relative;
   height: 58px;
   flex: none;
   display: flex;
@@ -252,22 +247,9 @@ onMounted(loadCamera)
   padding: 0 10px 0 16px;
 }
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-family: var(--font-brand);
   font-size: 22px;
   color: var(--color-accent);
-}
-.brand-avatar {
-  width: 34px; height: 34px;
-  border-radius: 17px;
-  background: var(--color-neutral-800);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-neutral-500);
-  font-size: 16px;
 }
 .topbar-title {
   font-size: 18px;
@@ -279,6 +261,10 @@ onMounted(loadCamera)
   gap: 6px;
 }
 .session-chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -288,34 +274,23 @@ onMounted(loadCamera)
   border-radius: 100px;
   padding: 6px 12px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .session-chip i { font-size: 13.5px; }
-.proto-seg {
-  display: flex;
+.proto-toggle {
+  height: 32px;
+  padding: 0 12px;
   border-radius: 8px;
-  overflow: hidden;
-}
-.proto-opt {
-  width: 66px; height: 32px;
-  padding: 0;
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
   font-size: 11.8px;
+  font-weight: 800;
   font-family: inherit;
-  background: transparent;
-  color: var(--color-neutral-400);
   cursor: pointer;
   white-space: nowrap;
 }
-.proto-opt.first { border-radius: 8px 0 0 8px; }
-.proto-opt:not(.first) { border-radius: 0 8px 8px 0; margin-left: -1px; }
-.proto-opt.active {
-  position: relative;
-  z-index: 1;
-  border-color: var(--color-accent-700);
-  background: var(--color-accent-900);
-  color: var(--color-accent);
-  font-weight: 800;
-}
+.proto-toggle:active { background: var(--color-neutral-900); }
 .bell {
   position: relative;
   width: 44px; height: 44px;

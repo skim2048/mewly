@@ -71,7 +71,7 @@ const group2 = computed(() => [
         <span class="row-label">{{ row.label }}</span>
         <i class="ph ph-caret-right caret"></i>
       </button>
-      <button class="row-item danger" @click="emit('logout')">
+      <button class="row-item" @click="emit('logout')">
         <i class="ph ph-sign-out"></i>
         <span class="row-label">{{ t('dashboard.menu.logout') }}</span>
       </button>
@@ -159,8 +159,6 @@ const group2 = computed(() => [
   font-size: 17px;
   color: var(--color-neutral-400);
 }
-.row-item.danger,
-.row-item.danger > i:first-child { color: var(--danger); }
 .row-label {
   flex: 1;
   text-align: left;

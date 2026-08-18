@@ -309,6 +309,17 @@ function onClose() {
   border-radius: 50%;
   background: var(--color-neutral-500);
 }
+.ptz-zoom-ctl input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: transparent;
+}
+.ptz-zoom-ctl input[type='range']::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-neutral-500);
+}
 .ptz-speed { display: flex; flex-direction: column; gap: 7px; }
 .ptz-row-label {
   font-size: 12.5px;
@@ -401,7 +412,7 @@ function onClose() {
   color: var(--color-neutral-400);
   line-height: 1.45;
 }
-.ptz-hint.err { color: #e07a86; }
+.ptz-hint.err { color: var(--color-text); }
 
 /* — 자동 순찰 세부 — */
 .patrol-label {

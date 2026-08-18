@@ -986,7 +986,7 @@ onBeforeUnmount(() => {
 .vlm-latest.live { color: var(--color-text); }
 .vlm-latest.idle { color: var(--color-neutral-400); }
 .vlm-latest.dim { color: var(--color-neutral-500); }
-.vlm-latest.err { color: #e07a86; }
+.vlm-latest.err { color: var(--color-text); }
 
 .vlm-actions {
   flex: none;

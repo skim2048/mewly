@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
@@ -8,6 +8,16 @@ import { getEditableMewlyHost, applyMewlyHost } from '../endpoints.js'
 const router = useRouter()
 const { login, consumeLogoutNotice } = useAuth()
 const { t } = useLocale()
+
+// @claude 로그인 화면은 세로모드 전용. 화면을 떠날 때 잠금을 해제해야
+// @claude 메인 화면의 회전 기반 전체화면(가로 → 진입)이 동작한다.
+// @claude (브라우저에서는 lock이 전체 화면 밖에서 거부될 수 있어 무시한다.)
+onMounted(() => {
+  try { screen.orientation?.lock?.('portrait')?.catch?.(() => {}) } catch {}
+})
+onBeforeUnmount(() => {
+  try { screen.orientation?.unlock?.() } catch {}
+})
 
 const username = ref('')
 const password = ref('')
@@ -167,7 +177,7 @@ async function handleLogin() {
   border-radius: 100px;
   border: none;
   background: var(--color-accent);
-  color: #12131c;
+  color: var(--color-bg);
   font-size: 16px;
   font-weight: 700;
   font-family: inherit;

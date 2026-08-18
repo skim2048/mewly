@@ -52,7 +52,6 @@ const presetRows = computed(() => PRESETS.map((p) => {
     ...p,
     value: saved.target,
     modeLabel: saved.mode === 'cool' ? t('temp.cool') : t('temp.heat'),
-    modeColor: saved.mode === 'cool' ? '#7fa8bd' : '#e0955f',
     on: !saveMode.value && target.value === saved.target && mode.value === saved.mode,
   }
 }))
@@ -144,7 +143,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
               <span :class="{ bold: p.on }">{{ p.label() }}</span>
             </span>
             <span class="preset-sub">
-              <span :style="{ color: p.modeColor }">{{ p.modeLabel }}</span>{{ p.value }}°C
+              <span>{{ p.modeLabel }}</span>{{ p.value }}°C
             </span>
           </button>
         </div>

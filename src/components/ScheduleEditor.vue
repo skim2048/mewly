@@ -314,12 +314,13 @@ function remove() {
   margin-top: 1px;
 }
 
+/* 컬러셋 방침: 위험 동작도 액센트 강조 문법으로 표현한다 */
 .delete-btn {
   height: 48px;
   border-radius: 10px;
-  border: none;
-  background: var(--danger-bg);
-  color: var(--danger);
+  border: 1px solid var(--color-accent-700);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;

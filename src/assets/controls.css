@@ -28,6 +28,21 @@ input[type='range'].ctl-range::-webkit-slider-thumb {
   background: var(--color-accent);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
 }
+/* Firefox: 트랙을 투명하게 두어 input의 채움 배경이 비치게 하고,
+   노브는 webkit과 동일 사양으로 맞춘다. */
+input[type='range'].ctl-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: transparent;
+}
+input[type='range'].ctl-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
 
 /* — 오브 버튼 (전원·냉난방 전환): 발광은 인라인 스타일로 지정 — */
 .orb-btn {

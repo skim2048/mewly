@@ -526,7 +526,7 @@ function thumbUrl(clip) {
   font-family: inherit;
 }
 .sel-delete.armed {
-  background: var(--danger-bg);
-  color: var(--danger);
+  background: var(--color-accent-900);
+  color: var(--color-accent);
 }
 </style>
