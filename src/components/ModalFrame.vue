@@ -2,6 +2,8 @@
 const props = defineProps({
   title: { type: String, default: '' },
   closable: { type: Boolean, default: true },
+  // 시안: 비밀번호 모달처럼 X 없이 버튼으로만 닫는 카드가 있다.
+  showX: { type: Boolean, default: true },
 })
 const emit = defineEmits(['close'])
 
@@ -17,7 +19,7 @@ function onBackdrop(e) {
     <div class="modal-frame" role="dialog" aria-modal="true">
       <div class="modal-head">
         <span class="modal-title">{{ title }}</span>
-        <button v-if="closable" class="modal-x" @click="emit('close')"><i class="ph ph-x"></i></button>
+        <button v-if="closable && showX" class="modal-x" @click="emit('close')"><i class="ph ph-x"></i></button>
       </div>
       <div class="modal-body">
         <slot />

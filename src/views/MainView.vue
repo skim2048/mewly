@@ -5,6 +5,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useStreamProtocol } from '../composables/useStreamProtocol.js'
 import { useNotifications } from '../composables/useNotifications.js'
+import { useToast } from '../composables/useToast.js'
 import ModalFrame from '../components/ModalFrame.vue'
 import HomeTab from '../components/HomeTab.vue'
 
@@ -33,6 +34,7 @@ const {
 const { t } = useLocale()
 const { preferredProtocol, setProtocol } = useStreamProtocol()
 const { unreadCount } = useNotifications()
+const { toast, hideToast } = useToast()
 
 // ── Layout state (시안의 계층: 탭 4개 + 오버레이 + 시트 + 모달) ──
 const activeTab = ref('home')
@@ -148,13 +150,12 @@ onMounted(loadCamera)
     <!-- ── Content ── -->
     <!-- @claude KeepAlive: 탭 전환이 스트림 파괴·목록 재조회·필터 초기화를
          일으키지 않도록 탭 컴포넌트를 산 채로 유지한다(검토 지적 반영). -->
-    <main class="content">
+    <main class="content" :class="{ padded: activeTab !== 'home' }">
       <KeepAlive>
         <HomeTab
           v-if="activeTab === 'home'"
           @open-sheet="sheet = $event"
           @open-modal="modal = $event"
-          @go-records="goRecords()"
         />
         <CalendarTab
           v-else-if="activeTab === 'cal'"
@@ -170,6 +171,13 @@ onMounted(loadCamera)
         />
       </KeepAlive>
     </main>
+
+    <!-- ── 기기 제어 실패 토스트 (시안: 하단 80px 고정) ── -->
+    <div v-if="toast" class="device-toast">
+      <i class="ph ph-warning-circle toast-icon"></i>
+      <span class="toast-text">{{ t(`toast.${toast}`) }}</span>
+      <button class="toast-x" @click="hideToast"><i class="ph ph-x"></i></button>
+    </div>
 
     <!-- ── Bottom navigation ── -->
     <nav class="bottom-nav">
@@ -216,6 +224,7 @@ onMounted(loadCamera)
       v-else-if="modal === 'password'"
       :title="modalTitle"
       :closable="modalClosable"
+      :show-x="false"
       @close="closeModal"
     >
       <ChangePasswordPanel :forced="mustChangePassword" @close="modal = null" />
@@ -228,12 +237,55 @@ onMounted(loadCamera)
 
 <style scoped>
 .app-frame {
+  position: relative;
   height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
   color: var(--color-text);
   font-size: 14px;
+}
+
+/* — 기기 제어 실패 토스트 — */
+.device-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  z-index: 170;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: var(--color-neutral-800);
+  box-shadow: var(--shadow-lg);
+}
+.toast-icon {
+  flex: none;
+  margin-top: 1px;
+  font-size: 16px;
+  color: var(--color-accent-300);
+}
+.toast-text {
+  flex: 1;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+.toast-x {
+  flex: none;
+  width: 24px; height: 24px;
+  border: none;
+  background: none;
+  color: var(--color-neutral-400);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* — top app bar (시안: 58px, 홈=아바타+브랜드, 그 외=탭 제목) — */
@@ -245,6 +297,7 @@ onMounted(loadCamera)
   align-items: center;
   justify-content: space-between;
   padding: 0 10px 0 16px;
+  border-bottom: 1px solid var(--color-divider);
 }
 .brand {
   font-family: var(--font-brand);
@@ -327,6 +380,8 @@ onMounted(loadCamera)
   flex-direction: column;
   overflow: hidden;
 }
+/* 일정·기록·설정 탭: 상단 바 아래 여백 (홈은 영상이 바로 붙는다) */
+.content.padded { padding-top: 12px; }
 
 /* — bottom navigation (시안: 64px, 4열, 활성=accent·fill·800) — */
 .bottom-nav {

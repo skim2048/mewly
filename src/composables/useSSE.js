@@ -39,6 +39,10 @@ const state = reactive({
   ptz_pan: null,
   ptz_tilt: null,
   ptz_presets: [],
+  // slot(문자열 키) -> {pan, tilt} — 프리셋 저장 좌표
+  ptz_preset_positions: {},
+  // {enabled, interval_s} — 자동 순찰 설정 (FR-052)
+  ptz_patrol: null,
   // @claude Prompt
   inference_prompt: '',
   trigger_keywords: '',
@@ -90,6 +94,8 @@ function resetState() {
   state.ptz_pan = null
   state.ptz_tilt = null
   state.ptz_presets = []
+  state.ptz_preset_positions = {}
+  state.ptz_patrol = null
   state.inference_prompt = ''
   state.trigger_keywords = ''
   state.clip_count = 0

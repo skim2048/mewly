@@ -45,6 +45,20 @@ async function gotoPreset(slot) {
   return !!data?.ok
 }
 
+// 지정 좌표(ONVIF 정규화 공간 -1~1)로 절대 이동 (FR-016).
+async function moveAbsolute(pan, tilt) {
+  const data = await post({ action: 'absolute', pan, tilt })
+  return !!data?.ok
+}
+
+// 자동 순찰 설정 (FR-052). 결과 상태는 SSE의 ptz_patrol로 내려온다.
+async function setPatrol(enabled, intervalSec) {
+  const body = { action: 'patrol', enabled }
+  if (intervalSec != null) body.interval_s = intervalSec
+  const data = await post(body)
+  return !!data?.ok
+}
+
 export function usePtz() {
-  return { speedLevel, setSpeedLevel, startMove, stopMove, savePreset, gotoPreset }
+  return { speedLevel, setSpeedLevel, startMove, stopMove, moveAbsolute, savePreset, gotoPreset, setPatrol }
 }

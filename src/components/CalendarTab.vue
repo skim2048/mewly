@@ -111,11 +111,11 @@ const daySchedules = computed(() => {
         :disabled="c.dim"
         @click="selected = c.iso"
       >
+        <span class="cal-dot" :class="{ on: c.dot }"></span>
         <span
           class="cal-num"
           :class="{ dim: c.dim, today: c.today, picked: c.selected && !c.today }"
         >{{ c.n }}</span>
-        <span class="cal-dot" :class="{ on: c.dot }"></span>
       </button>
     </div>
 

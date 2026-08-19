@@ -12,16 +12,11 @@ const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const error = ref('')
-const success = ref('')
 const loading = ref(false)
-const showCurrent = ref(false)
-const showNew = ref(false)
-const showConfirm = ref(false)
 const { t } = useLocale()
 
 async function handleChange() {
   error.value = ''
-  success.value = ''
 
   if (currentPassword.value === newPassword.value) {
     error.value = t('changePassword.error.sameAsCurrent')
@@ -51,10 +46,8 @@ async function handleChange() {
       error.value = body.detail || t('changePassword.error.requestFailed')
       return
     }
-    success.value = t('changePassword.success')
-    currentPassword.value = ''
-    newPassword.value = ''
-    confirmPassword.value = ''
+    // 시안: 변경 성공 시 모달을 닫는다 (강제 모드 해제 포함)
+    emit('close')
   } catch {
     error.value = t('changePassword.error.network')
   } finally {
@@ -64,71 +57,108 @@ async function handleChange() {
 </script>
 
 <template>
-  <div class="form-col">
-    <div v-if="props.forced" class="form-note warn">
-      <i class="ph ph-info"></i><span>{{ t('changePassword.forcedNotice') }}</span>
-    </div>
-    <div v-if="error" class="form-note warn">
+  <div class="pw-panel">
+    <!-- 시안: 강제 모드 안내는 상자 없이 본문 텍스트로 표시한다 -->
+    <span v-if="props.forced" class="pw-forced">{{ t('changePassword.forcedNotice') }}</span>
+    <div v-if="error" class="notice-box">
       <i class="ph ph-warning-circle"></i><span>{{ error }}</span>
     </div>
-    <div v-if="success" class="form-note">
-      <i class="ph ph-check-circle"></i><span>{{ success }}</span>
-    </div>
 
-    <label class="form-field">{{ t('changePassword.field.current') }}
-      <span class="pw-wrap">
-        <input v-model="currentPassword" :type="showCurrent ? 'text' : 'password'" autocomplete="current-password" />
-        <button type="button" class="pw-toggle" tabindex="-1" @click="showCurrent = !showCurrent">
-          <i :class="showCurrent ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
-        </button>
-      </span>
-    </label>
-    <label class="form-field">{{ t('changePassword.field.new') }}
-      <span class="pw-wrap">
-        <input v-model="newPassword" :type="showNew ? 'text' : 'password'" autocomplete="new-password" />
-        <button type="button" class="pw-toggle" tabindex="-1" @click="showNew = !showNew">
-          <i :class="showNew ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
-        </button>
-      </span>
-    </label>
-    <label class="form-field">{{ t('changePassword.field.confirm') }}
-      <span class="pw-wrap">
-        <input v-model="confirmPassword" :type="showConfirm ? 'text' : 'password'" autocomplete="new-password" />
-        <button type="button" class="pw-toggle" tabindex="-1" @click="showConfirm = !showConfirm">
-          <i :class="showConfirm ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
-        </button>
-      </span>
-    </label>
+    <!-- 시안: 라벨 없이 placeholder 3개 -->
+    <input
+      v-model="currentPassword"
+      type="password"
+      class="pw-input"
+      :placeholder="t('changePassword.field.current')"
+      autocomplete="current-password"
+    />
+    <input
+      v-model="newPassword"
+      type="password"
+      class="pw-input"
+      :placeholder="t('changePassword.field.new')"
+      autocomplete="new-password"
+    />
+    <input
+      v-model="confirmPassword"
+      type="password"
+      class="pw-input"
+      :placeholder="t('changePassword.field.confirm')"
+      autocomplete="new-password"
+    />
 
-    <div class="form-actions">
-      <button class="form-btn primary" :disabled="loading" @click="handleChange">
+    <!-- 시안: [취소][변경(액센트, 우측)] — 강제 모드에서는 취소 없음 -->
+    <div class="pw-actions">
+      <button v-if="!props.forced" class="pw-btn" @click="emit('close')">
+        {{ t('changePassword.action.cancel') }}
+      </button>
+      <button class="pw-btn primary" :disabled="loading" @click="handleChange">
         {{ loading ? t('changePassword.action.loading') : t('changePassword.action.submit') }}
       </button>
-      <button v-if="!props.forced" class="form-btn" @click="emit('close')">{{ t('changePassword.action.cancel') }}</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.pw-wrap {
-  position: relative;
+.pw-panel {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 13px;
 }
-.pw-wrap input { padding-right: 40px; }
-.pw-toggle {
-  position: absolute;
-  right: 6px;
-  width: 30px; height: 30px;
+.pw-forced {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-neutral-400);
+}
+.notice-box {
+  display: flex;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--color-neutral-900);
+  border-left: 2px solid var(--color-accent);
+  align-items: flex-start;
+  font-size: 12.3px;
+  line-height: 1.55;
+  color: var(--color-neutral-300);
+}
+.notice-box i {
+  flex: none;
+  font-size: 15.8px;
+  color: var(--color-accent);
+  margin-top: 1px;
+}
+.pw-input {
+  height: 46px;
+  border-radius: 10px;
+  border: 1px solid var(--color-neutral-800);
+  background: var(--color-neutral-900);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  padding: 0 13px;
+  outline: none;
+}
+.pw-input:focus-visible { outline: 2px solid var(--color-accent); }
+.pw-actions {
+  display: flex;
+  gap: 8px;
+}
+.pw-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 10px;
   border: none;
-  background: none;
-  color: var(--color-neutral-500);
-  font-size: 16px;
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-300);
+  font-size: 13.5px;
+  font-family: inherit;
   cursor: pointer;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-.pw-toggle:hover { background: var(--color-neutral-900); color: var(--color-text); }
+.pw-btn.primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+.pw-btn:disabled { opacity: 0.5; cursor: default; }
 </style>

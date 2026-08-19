@@ -6,6 +6,7 @@ import { authFetch } from '../composables/useFetch.js'
 import { API_ENDPOINTS, getClipUrl } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
 import { toIsoDate, withDayHeaders } from '../composables/dates.js'
+import { persistentRef } from '../composables/storage.js'
 import ClipPlayerModal from './ClipPlayerModal.vue'
 
 // @claude dateRequest: 달력 「이날의 기록 보기」의 교차 진입. 매번 새 객체
@@ -17,6 +18,12 @@ const props = defineProps({
 const { clipVersion, deleteClips } = useClips()
 const { isAuthenticated, accessToken } = useAuth()
 const { t } = useLocale()
+
+// ── 보기 방식: 리스트 | 3열 그리드 (사용자 확정, 선택 유지) ──
+const viewMode = persistentRef('recViewMode', 'list')
+function toggleViewMode() {
+  viewMode.value = viewMode.value === 'list' ? 'grid' : 'list'
+}
 
 // ── Filter (시안: 검색 + 기간 칩 일·주·월·분기·연도) ──
 const searchQuery = ref('')
@@ -83,15 +90,22 @@ async function deleteSelected() {
   selectMode.value = false
 }
 
-// ── Playback ──
-const playing = ref(null)
+// ── Playback (시안: 카드에 일자·시각 제목과 추론 문장을 함께 표시) ──
+const playing = ref(null) // null | { name, title, desc }
 const playerSrc = computed(() =>
-  playing.value ? getClipUrl(playing.value, 'full', accessToken.value || '') : '',
+  playing.value ? getClipUrl(playing.value.name, 'full', accessToken.value || '') : '',
 )
 
-function onRowClick(clip) {
-  if (selectMode.value) toggleSelected(clip.name)
-  else playing.value = clip.name
+function onRowClick(row) {
+  if (selectMode.value) {
+    toggleSelected(row.name)
+    return
+  }
+  playing.value = {
+    name: row.name,
+    title: `${dayLabel(row.day)} ${row.time}`,
+    desc: row.text,
+  }
 }
 
 // ── Server data (q · date_from · date_to · limit · offset) ──
@@ -170,6 +184,20 @@ function clipDay(clip) {
   return Number.isNaN(parsed.getTime()) ? '' : toIsoDate(parsed)
 }
 
+function dayHeaderLabel(day, { isToday, isYesterday }) {
+  const short = day.slice(2)
+  if (isToday) return `${t('clips.preset.today')} · ${short}`
+  if (isYesterday) return `${t('clips.preset.yesterday')} · ${short}`
+  return short
+}
+
+function dayLabel(day) {
+  return dayHeaderLabel(day, {
+    isToday: day === toIsoDate(),
+    isYesterday: day === toIsoDate(new Date(), -1),
+  })
+}
+
 const rows = computed(() => {
   const enriched = clips.value.map((clip) => {
     const parsed = new Date(clip.created_at)
@@ -180,16 +208,13 @@ const rows = computed(() => {
       ...clip,
       day: clipDay(clip),
       time,
-      text: clip.keywords?.length ? clip.keywords.join(', ') : clip.name,
+      // @claude 시안: 행 본문은 클립 저장 시점의 VLM 추론 문장. 서버가 문장을
+      // @claude 주지 않는 옛 클립은 키워드·파일명으로 대체한다.
+      text: clip.vlm_text || (clip.keywords?.length ? clip.keywords.join(', ') : clip.name),
       picked: selected.value.has(clip.name),
     }
   })
-  return withDayHeaders(enriched, (r) => r.day, (day, { isToday, isYesterday }) => {
-    const short = day.slice(2)
-    if (isToday) return `${t('clips.preset.today')} · ${short}`
-    if (isYesterday) return `${t('clips.preset.yesterday')} · ${short}`
-    return short
-  })
+  return withDayHeaders(enriched, (r) => r.day, dayHeaderLabel)
 })
 
 function thumbUrl(clip) {
@@ -225,7 +250,10 @@ function thumbUrl(clip) {
         >{{ p.label() }}</button>
       </span>
       <template v-if="!selectMode">
-        <button class="ctl-pill right" @click="enterSelectMode">{{ t('rec.select') }}</button>
+        <button class="ctl-pill icon right" @click="toggleViewMode">
+          <i :class="viewMode === 'list' ? 'ph ph-squares-four' : 'ph ph-list-dashes'"></i>
+        </button>
+        <button class="ctl-pill" @click="enterSelectMode">{{ t('rec.select') }}</button>
       </template>
       <template v-else>
         <button class="ctl-pill right accent" @click="toggleSelectAll">
@@ -235,13 +263,15 @@ function thumbUrl(clip) {
       </template>
     </div>
 
-    <div class="rec-list">
+    <div class="rec-list" :class="{ grid: viewMode === 'grid' }">
       <span v-if="!rows.length" class="rec-empty">
         {{ searchQuery ? t('rec.noMatch', { q: searchQuery }) : t('rec.empty') }}
       </span>
       <template v-for="r in rows" :key="r.name">
         <span v-if="r.header" class="rec-day">{{ r.header }}</span>
-        <div class="rec-row" @click="onRowClick(r)">
+
+        <!-- 리스트뷰 -->
+        <div v-if="viewMode === 'list'" class="rec-row" @click="onRowClick(r)">
           <span v-if="selectMode" class="rec-check" :class="{ on: r.picked }">
             <i v-if="r.picked" class="ph-bold ph-check"></i>
           </span>
@@ -254,6 +284,16 @@ function thumbUrl(clip) {
             <span class="rec-text">{{ r.text }}</span>
           </span>
         </div>
+
+        <!-- 그리드뷰 (3열) -->
+        <button v-else class="rec-card" :class="{ picked: r.picked }" @click="onRowClick(r)">
+          <video :src="thumbUrl(r)" preload="metadata" muted></video>
+          <span class="card-time">{{ r.time }}</span>
+          <span v-if="selectMode" class="rec-check card-pick" :class="{ on: r.picked }">
+            <i v-if="r.picked" class="ph-bold ph-check"></i>
+          </span>
+          <i v-else class="ph-fill ph-play card-play"></i>
+        </button>
       </template>
 
       <div v-if="totalPages > 1" class="rec-pager">
@@ -274,7 +314,13 @@ function thumbUrl(clip) {
       </button>
     </div>
 
-    <ClipPlayerModal :open="!!playing" :src="playerSrc" @close="playing = null" />
+    <ClipPlayerModal
+      :open="!!playing"
+      :src="playerSrc"
+      :title="playing?.title || ''"
+      :desc="playing?.desc || ''"
+      @close="playing = null"
+    />
   </div>
 </template>
 
@@ -379,6 +425,14 @@ function thumbUrl(clip) {
 }
 .ctl-pill.right { margin-left: auto; }
 .ctl-pill.accent { color: var(--color-accent); }
+.ctl-pill.icon {
+  width: 36px;
+  padding: 0;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .rec-list {
   flex: 1;
@@ -474,6 +528,67 @@ function thumbUrl(clip) {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+/* — 그리드뷰 (3열) — */
+.rec-list.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  align-content: start;
+}
+.rec-list.grid .rec-day,
+.rec-list.grid .rec-empty,
+.rec-list.grid .rec-pager {
+  grid-column: 1 / -1;
+}
+.rec-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  /* 밝은 바탕이 영상 가장자리로 비치지 않도록 테두리 없이 검정 바탕을 쓴다 */
+  border: none;
+  background: #000;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.rec-card.picked {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+}
+.rec-card video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.card-time {
+  position: absolute;
+  left: 5px;
+  bottom: 5px;
+  font-size: 10.5px;
+  color: #e9e9ed;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.card-pick {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+.card-play {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  font-size: 14px;
+  color: rgba(233, 233, 237, 0.85);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
 }
 
 .rec-pager {

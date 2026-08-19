@@ -41,30 +41,27 @@ const orbIconStyle = computed(() => ({
   color: `color-mix(in srgb, var(--color-accent) ${55 + pct.value * 45}%, var(--color-neutral-700))`,
 }))
 
-const PRESETS = [
-  { key: 'sleep', icon: 'ph ph-moon', label: () => t('temp.preset.sleep') },
-  { key: 'active', icon: 'ph ph-paw-print', label: () => t('temp.preset.active') },
-  { key: 'eco', icon: 'ph ph-leaf', label: () => t('temp.preset.eco') },
-]
-const presetRows = computed(() => PRESETS.map((p) => {
-  const saved = temp.value.presets[p.key]
+// 프리셋: PTZ와 동일한 숫자 4슬롯 (사용자 확정)
+const PRESET_SLOTS = [1, 2, 3, 4]
+const presetRows = computed(() => PRESET_SLOTS.map((slot) => {
+  const saved = temp.value.presets[slot]
   return {
-    ...p,
+    slot,
     value: saved.target,
     modeLabel: saved.mode === 'cool' ? t('temp.cool') : t('temp.heat'),
     on: !saveMode.value && target.value === saved.target && mode.value === saved.mode,
   }
 }))
 
-function onPreset(key) {
+function onPreset(slot) {
   if (saveMode.value) {
     temp.value = {
       ...temp.value,
-      presets: { ...temp.value.presets, [key]: { target: target.value, mode: mode.value } },
+      presets: { ...temp.value.presets, [slot]: { target: target.value, mode: mode.value } },
     }
     saveMode.value = false
   } else {
-    const saved = temp.value.presets[key]
+    const saved = temp.value.presets[slot]
     temp.value = { ...temp.value, target: saved.target, mode: saved.mode }
   }
 }
@@ -88,7 +85,8 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
           </span>
           <span class="temp-chip" :class="{ on: running }">{{ runLabel }}</span>
         </span>
-        <button class="orb-btn" :title="t('temp.modeSwitch')" @click="toggleMode">
+        <!-- 시안: title은 전환 「대상」 모드명 -->
+        <button class="orb-btn" :title="mode === 'cool' ? t('temp.heat') : t('temp.cool')" @click="toggleMode">
           <span class="orb" :style="orbStyle">
             <i
               :class="mode === 'cool' ? 'ph ph-snowflake' : 'ph-fill ph-fire-simple'"
@@ -132,15 +130,14 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
         <div class="preset-row">
           <button
             v-for="p in presetRows"
-            :key="p.key"
+            :key="p.slot"
             class="preset-btn"
             :class="{ on: p.on }"
-            @click="onPreset(p.key)"
+            @click="onPreset(p.slot)"
           >
             <span class="preset-top">
               <i v-if="saveMode" class="ph ph-bookmark-simple save-mark"></i>
-              <i :class="p.icon"></i>
-              <span :class="{ bold: p.on }">{{ p.label() }}</span>
+              <span class="preset-num" :class="{ bold: p.on }">{{ p.slot }}</span>
             </span>
             <span class="preset-sub">
               <span>{{ p.modeLabel }}</span>{{ p.value }}°C
@@ -149,7 +146,6 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
         </div>
       </div>
 
-      <span class="sheet-note">{{ t('temp.note') }}</span>
     </div>
   </SheetFrame>
 </template>

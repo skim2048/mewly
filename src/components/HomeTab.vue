@@ -13,8 +13,9 @@ import { usePtz } from '../composables/usePtz.js'
 import { getHlsUrl, getWhepUrl, APP_ENDPOINTS } from '../endpoints.js'
 import { authFetch } from '../composables/useFetch.js'
 import { withDayHeaders } from '../composables/dates.js'
+import { useToast } from '../composables/useToast.js'
 
-const emit = defineEmits(['open-sheet', 'open-modal', 'go-records'])
+const emit = defineEmits(['open-sheet', 'open-modal'])
 
 const { state: sseState } = useSSE()
 const { t } = useLocale()
@@ -24,7 +25,8 @@ const { configured, connecting, connected, ptzEnabled, setConnected, setDisconne
 const { analysisActive, busy: analysisBusy, toggle: toggleAnalysis } = useAnalysis()
 const { entries: inferLog } = useInferLog()
 const { vlmDot, vlmLabel, vlmKind } = useVlmStatus()
-const { startMove, stopMove } = usePtz()
+const { moveAbsolute, stopMove, speedLevel } = usePtz()
+const { showToast } = useToast()
 
 watch(accessToken, (currentToken) => {
   if (!currentToken) {
@@ -96,30 +98,16 @@ async function onInferClick() {
   if (!ok) emit('open-modal', 'prompt')
 }
 
-// @claude 시안: VLM 카드에 최신 문장 한 줄, 아래에 최근 로그 10건.
-// @claude 오류·준비 중·빈 상태는 각각의 안내 문구로 대체한다.
-const latestText = computed(() => {
-  if (vlmKind.value === 'err') return t('home.latestErr')
-  if (vlmKind.value === 'wait') return t('home.latestWait')
-  if (!inferLog.length) return t('home.latestNone')
-  return inferLog[0].text
-})
-const latestTone = computed(() => {
-  if (vlmKind.value === 'err') return 'err'
-  if (vlmKind.value === 'wait' || !inferLog.length) return 'dim'
-  return vlmKind.value === 'on' ? 'live' : 'idle'
-})
-const showLogs = computed(() => vlmKind.value !== 'err' && inferLog.length > 0)
-const prevLogs = computed(() => (showLogs.value ? inferLog.slice(1, 11) : []))
-
-// @claude 시안: 날짜가 바뀌는 지점에만 구분선을 넣되 오늘은 생략하고,
-// @claude 어제는 문구로, 그보다 이전은 YY-MM-DD로 표기한다. (전체화면 패널)
-const fsLogEntries = computed(() =>
-  withDayHeaders(inferLog, (entry) => entry.day, (day, { isToday, isYesterday }) => {
+// ── 추론 로그 — 시안: 날짜가 바뀌는 지점에만 구분선(오늘 생략·어제 문구·YY-MM-DD)
+function annotateDays(list) {
+  return withDayHeaders(list, (entry) => entry.day, (day, { isToday, isYesterday }) => {
     if (isToday) return null
     return isYesterday ? t('dashboard.day.yesterday') : day.slice(2)
-  }),
-)
+  })
+}
+
+const logEntries = computed(() => annotateDays([...inferLog]))
+
 
 // ── 기기 제어 버튼 (조명·온도·마이크는 목업, PTZ는 실동작) ──
 const deviceButtons = [
@@ -135,24 +123,90 @@ const PTZ_DIRS = {
   left: { pan: -1, tilt: 0 },
   right: { pan: 1, tilt: 0 },
 }
+// @claude 방향 제어는 0.05 단위의 절대 이동 스텝(사용자 확정). 누르고 있으면
+// @claude 이동 속도에 따른 주기로 반복하고, 목표값은 로컬에 잠시 고정하여
+// @claude SSE 폴링 지연에 흔들리지 않게 한다(PTZ 시트와 동일 규칙).
+const PTZ_STEP = 0.05
+const STEP_REPEAT_MS = { 1: 450, 2: 200 } // 보통·고속
 const padPressing = ref(null)
+const padHold = ref(null) // null | { pan, tilt }
+let padHoldTimer = null
+let padStepTimer = null
+
+function clampAxis(v) {
+  return Math.max(-1, Math.min(1, Math.round(v * 100) / 100))
+}
+
+// @claude 고정 해제는 수렴 기준(SSE 값이 목표 허용 오차 안 도달)이며,
+// @claude 응답 유실 대비 상한 타이머만 예비로 둔다(PTZ 시트와 동일 규칙).
+const HOLD_EPS = 0.03
+const HOLD_MAX_MS = 8000
+
+function padStep(dir) {
+  const d = PTZ_DIRS[dir]
+  const pan = clampAxis((padHold.value?.pan ?? sseState.ptz_pan ?? 0) + d.pan * PTZ_STEP)
+  const tilt = clampAxis((padHold.value?.tilt ?? sseState.ptz_tilt ?? 0) + d.tilt * PTZ_STEP)
+  padHold.value = { pan, tilt }
+  clearTimeout(padHoldTimer)
+  padHoldTimer = setTimeout(() => { padHold.value = null }, HOLD_MAX_MS)
+  moveAbsolute(pan, tilt)
+}
+
+watch(() => [sseState.ptz_pan, sseState.ptz_tilt], ([pan, tilt]) => {
+  if (padHold.value == null || pan == null || tilt == null) return
+  if (Math.abs(pan - padHold.value.pan) <= HOLD_EPS
+    && Math.abs(tilt - padHold.value.tilt) <= HOLD_EPS) {
+    clearTimeout(padHoldTimer)
+    padHold.value = null
+  }
+})
+
 function padDown(dir) {
   padPressing.value = dir
-  const d = PTZ_DIRS[dir]
-  startMove(d.pan, d.tilt)
+  padStep(dir)
+  clearInterval(padStepTimer)
+  padStepTimer = setInterval(() => padStep(dir), STEP_REPEAT_MS[speedLevel.value] ?? 450)
 }
 function padUp() {
   if (padPressing.value == null) return
   padPressing.value = null
+  clearInterval(padStepTimer)
+}
+function padStop() {
+  padUp()
   stopMove()
 }
-// @claude 패드가 눌린 채 v-if 조건 변화(회전·스트림 단절)나 컴포넌트 파괴로
-// @claude 사라지면 pointerup이 오지 않으므로, 표시 조건이 꺼지는 즉시 정지
-// @claude 명령을 보내 카메라가 계속 회전하는 것을 막는다.
-const padVisible = computed(() => fullscreen.value && ptzEnabled.value && isPlaying.value)
-watch(padVisible, (visible) => {
-  if (!visible) padUp()
+// @claude 시안: 전체화면에서 패드는 항상 표시하고, 조작 가능 조건(포트 입력
+// @claude + 재생 중)이 아닐 때만 흐리게 둔다. 조건이 꺼지면 스텝 반복도 멈춘다.
+// 순찰 중에는 전체화면 패드의 수동 조작도 차단한다 (사용자 확정)
+const padActive = computed(() =>
+  fullscreen.value && ptzEnabled.value && isPlaying.value && !sseState.ptz_patrol?.enabled,
+)
+watch(padActive, (active) => {
+  if (!active) padUp()
 })
+
+// 전체화면 PTZ 오류 문구 자리(시안 요소) — 오류 배선 시 이 값을 채운다.
+const fsPtzError = ref('')
+
+// @claude 순찰 중 비활성 패드를 탭하면 사유를 토스트로 안내한다 (사용자 확정)
+const patrolOn = computed(() => !!sseState.ptz_patrol?.enabled)
+
+function onPadPress(dir) {
+  if (padActive.value) {
+    padDown(dir)
+    return
+  }
+  if (patrolOn.value) showToast('patrolLock')
+}
+
+function onPadStopPress() {
+  if (padActive.value) {
+    padStop()
+    return
+  }
+  if (patrolOn.value) showToast('patrolLock')
+}
 
 // ── Stream (client/web LiveStream과 동일한 연결 논리) ──
 
@@ -459,6 +513,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   landscapeMq?.removeEventListener('change', onOrientationChange)
   padUp()
+  clearTimeout(padHoldTimer)
   destroyAll()
 })
 </script>
@@ -472,12 +527,12 @@ onBeforeUnmount(() => {
         <div class="videobox">
           <video ref="videoRef" muted playsinline />
 
-          <!-- 카메라 미등록: 영상 영역 안 안내 (탭하면 카메라 설정) -->
-          <button v-if="!configured" class="video-overlay" @click="emit('open-modal', 'camera')">
+          <!-- 카메라 미등록: 안내만 표시 (시안: 비상호작용) -->
+          <div v-if="!configured" class="video-overlay static">
             <i class="ph ph-video-camera-slash empty-icon"></i>
             <span class="overlay-text">{{ t('home.noCam') }}</span>
             <span class="overlay-hint">{{ t('home.noCamHint') }}</span>
-          </button>
+          </div>
 
           <button v-else-if="stopped" class="video-overlay" @click="handleConnect">
             <span class="play-ring"><i class="ph-fill ph-play"></i></span>
@@ -526,18 +581,29 @@ onBeforeUnmount(() => {
             ><i class="ph ph-corners-in"></i></button>
           </div>
 
-          <!-- 전체 화면: PTZ 패드 (낙관적 활성 — 포트 미입력·미재생만 숨김) -->
-          <div v-if="fullscreen && ptzEnabled && isPlaying" class="fs-ptz">
-            <button
-              v-for="dir in ['up', 'left', 'right', 'down']"
-              :key="dir"
-              class="fs-ptz-btn"
-              :class="dir"
-              @pointerdown.prevent="padDown(dir)"
-              @pointerup="padUp"
-              @pointercancel="padUp"
-              @pointerleave="padUp"
-            ><i :class="`ph ph-caret-${dir}`"></i></button>
+          <!-- 전체 화면: 줌 버튼 + PTZ 패드 (시안: 항상 표시, 비활성 시 흐림) -->
+          <div v-if="fullscreen" class="fs-br">
+            <span v-if="fsPtzError" class="fs-ptz-err">{{ fsPtzError }}</span>
+            <div class="fs-br-row">
+              <div class="fs-ptz">
+                <button
+                  v-for="dir in ['up', 'left', 'right', 'down']"
+                  :key="dir"
+                  class="fs-ptz-btn"
+                  :class="[dir, { off: !padActive }]"
+                  @pointerdown.prevent="onPadPress(dir)"
+                  @pointerup="padUp"
+                  @pointercancel="padUp"
+                  @pointerleave="padUp"
+                ><i :class="`ph ph-caret-${dir}`"></i></button>
+                <button
+                  class="fs-ptz-btn center"
+                  :class="{ off: !padActive }"
+                  :title="t('live.ptz.stop')"
+                  @click="onPadStopPress"
+                >STOP</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -550,8 +616,8 @@ onBeforeUnmount(() => {
             <button class="fs-log-x" @click="fsLog = false"><i class="ph ph-x"></i></button>
           </div>
           <div class="fs-log-list">
-            <div v-if="!fsLogEntries.length" class="log-none">{{ t('home.noLogs') }}</div>
-            <template v-for="(entry, i) in fsLogEntries" :key="entry.id">
+            <div v-if="!logEntries.length" class="log-none">{{ t('home.noLogs') }}</div>
+            <template v-for="(entry, i) in logEntries" :key="entry.id">
               <div v-if="entry.header" class="log-day">
                 <span class="log-day-rule"></span>
                 <span>{{ entry.header }}</span>
@@ -585,7 +651,7 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <!-- ── VLM 상태 카드 ── -->
+    <!-- ── VLM 로그 카드 (babycat/client/android와 동일 형태) ── -->
     <div class="vlm-card">
       <div class="vlm-head">
         <span class="vlm-status">
@@ -622,21 +688,22 @@ onBeforeUnmount(() => {
           >{{ analysisActive ? t('prompt.action.stop') : t('prompt.action.start') }}</button>
         </div>
       </div>
-      <div class="vlm-latest" :class="latestTone">{{ latestText }}</div>
-    </div>
 
-    <!-- ── 최근 로그 ── -->
-    <div class="prev-logs">
-      <div class="prev-head">
-        <span>{{ t('home.prevLogs') }}</span>
-        <button class="view-all" @click="emit('go-records')">{{ t('home.viewAll') }}</button>
-      </div>
-      <div class="prev-list">
-        <span v-if="!prevLogs.length" class="log-none">{{ t('home.noLogs') }}</span>
-        <div v-for="l in prevLogs" :key="l.id" class="prev-entry">
-          <span class="log-time">{{ l.time }}</span>
-          <span class="prev-text">{{ l.text }}</span>
-        </div>
+      <div class="log-rule"></div>
+
+      <div class="log-list">
+        <div v-if="!logEntries.length" class="log-none">{{ t('dashboard.log.waiting') }}</div>
+        <template v-for="(entry, i) in logEntries" :key="entry.id">
+          <div v-if="entry.header" class="log-day">
+            <span class="log-day-rule"></span>
+            <span>{{ entry.header }}</span>
+            <span class="log-day-rule"></span>
+          </div>
+          <div class="log-entry" :class="{ latest: i === 0 }">
+            <span class="log-time">{{ entry.time }}</span>
+            <span class="log-text">{{ entry.text }}</span>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -652,11 +719,12 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* — video (시안: 252px 고정) — */
+/* — video: 기본 16:9 영역. 스트림이 16:9가 아니면 contain이 레터박스를 만든다.
+   (시안의 고정 252px은 실스트림 비율과 어긋나 상하 여백이 생겨 16:9로 확정) — */
 .video-wrap {
   position: relative;
   flex: none;
-  height: 252px;
+  aspect-ratio: 16 / 9;
   background: var(--clip-bg);
   overflow: hidden;
 }
@@ -683,6 +751,7 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 150;
   height: auto;
+  aspect-ratio: auto;
   background: #0b0c12;
 }
 /* 세로 화면: 가로 캔버스를 90° 회전해 채운다.
@@ -719,6 +788,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 10px;
 }
+.video-overlay.static { cursor: default; }
 .empty-icon {
   font-size: 30px;
   color: var(--color-neutral-600);
@@ -769,7 +839,19 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 11px; left: 14px;
   font-size: 11px;
-  color: var(--clip-text);
+  color: #e9e9ed;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+/* 시안: 전체화면에서는 반투명 알약 배경 */
+.video-wrap.fs .stream-meta {
+  bottom: 14px; left: 18px;
+  font-size: 11.5px;
+  color: rgba(233, 233, 237, 0.6);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 5px 9px;
+  border-radius: 5px;
 }
 .video-actions {
   position: absolute;
@@ -813,9 +895,29 @@ onBeforeUnmount(() => {
 .fs-round.on {
   background: color-mix(in srgb, var(--color-accent) 35%, rgba(0, 0, 0, 0.45));
 }
-.fs-ptz {
+.fs-br {
   position: absolute;
   bottom: 14px; right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.fs-br-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+.fs-ptz-err {
+  max-width: 230px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 6px 9px;
+  border-radius: 6px;
+}
+.fs-ptz {
   display: grid;
   grid-template-columns: repeat(3, 38px);
   grid-template-rows: repeat(3, 38px);
@@ -835,11 +937,29 @@ onBeforeUnmount(() => {
 }
 .fs-ptz-btn.up { grid-column: 2; grid-row: 1; }
 .fs-ptz-btn.left { grid-column: 1; grid-row: 2; }
+.fs-ptz-btn.center {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+}
 .fs-ptz-btn.right { grid-column: 3; grid-row: 2; }
 .fs-ptz-btn.down { grid-column: 2; grid-row: 3; }
+/* 시안: 비활성 시 흐림 */
+.fs-ptz-btn.off {
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(233, 233, 237, 0.3);
+  cursor: default;
+}
 
 .fs-log {
-  width: 280px;
+  /* 회전 캔버스 폭에 비례(시안 812px 기준 280px ≈ 34%) — 작은 화면에서
+     영상 폭을 과점하지 않도록 절대폭 대신 비율과 상하한을 쓴다 */
+  width: 34%;
+  min-width: 200px;
+  max-width: 320px;
   flex: none;
   background: var(--color-surface);
   display: flex;
@@ -887,11 +1007,14 @@ onBeforeUnmount(() => {
   gap: 9px;
   padding: 12px 15px;
 }
+/* 로그 목록 공용 (VLM 카드·전체화면 패널) — babycat 사양 */
 .log-day {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  padding: 2px 0;
+  font-size: 11.5px;
   color: var(--color-neutral-500);
 }
 .log-day-rule {
@@ -902,21 +1025,23 @@ onBeforeUnmount(() => {
 .log-entry {
   flex: none;
   display: flex;
-  gap: 9px;
-  font-size: 12.3px;
+  gap: 8px;
+  font-size: 12.5px;
   line-height: 1.5;
-  color: var(--color-neutral-300);
+  color: var(--color-neutral-400);
+  border-radius: 6px;
 }
-.log-entry.latest { color: var(--color-text); }
+.log-entry.latest,
+.log-entry.latest .log-text { color: var(--color-text); }
 .log-time {
   flex: none;
   color: var(--color-neutral-500);
   font-variant-numeric: tabular-nums;
 }
 .log-none {
-  font-size: 12.3px;
-  color: var(--color-neutral-500);
-  padding: 6px 0;
+  padding: 10px 2px;
+  font-size: 12.5px;
+  color: var(--color-neutral-400);
 }
 
 /* — 기기 제어 버튼 — */
@@ -949,18 +1074,20 @@ onBeforeUnmount(() => {
   cursor: default;
 }
 
-/* — VLM 상태 카드 — */
+/* — VLM 로그 카드 (babycat/client/android LiveMobile과 동일 사양) — */
 .vlm-card {
-  flex: none;
-  margin: 12px 16px 0;
-  padding: 15px;
-  border-radius: 12px;
+  flex: 1;
+  min-height: 150px;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 12px 16px;
   background: var(--color-neutral-900);
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
 }
 .vlm-head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -970,146 +1097,117 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11.8px;
-  color: var(--color-neutral-400);
+  font-size: 12.5px;
   min-width: 0;
 }
 .vlm-dot {
+  width: 6px; height: 6px;
   flex: none;
-  width: 7px; height: 7px;
-  border-radius: 4px;
+  border-radius: 50%;
 }
-.vlm-latest {
-  font-size: 12.8px;
-  line-height: 1.5;
-}
-.vlm-latest.live { color: var(--color-text); }
-.vlm-latest.idle { color: var(--color-neutral-400); }
-.vlm-latest.dim { color: var(--color-neutral-500); }
-.vlm-latest.err { color: var(--color-text); }
-
 .vlm-actions {
-  flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex: none;
 }
 .model-wrap { position: relative; }
 .model-btn {
   height: 30px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--color-neutral-800);
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 11.8px;
+  padding: 0 8px 0 10px;
+  border-radius: 100px;
+  border: none;
+  background: var(--color-neutral-800);
+  color: var(--color-text);
   font-family: inherit;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 5px;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
 }
-.model-btn i { font-size: 11px; }
+.model-btn i { font-size: 11px; color: var(--color-neutral-400); }
 .menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 19;
 }
 .model-menu {
   position: absolute;
-  top: 34px; right: 0;
-  z-index: 95;
-  min-width: 170px;
+  top: 36px;
+  right: 0;
+  z-index: 20;
+  /* 내용 폭을 따르되 상·하한을 둔다(긴 모델명은 항목의 말줄임이 처리) */
+  width: max-content;
+  min-width: 160px;
+  max-width: 260px;
   background: var(--color-surface);
-  border: 1px solid var(--color-neutral-800);
-  border-radius: 10px;
-  box-shadow: var(--shadow-lg);
+  border-radius: 12px;
   padding: 4px;
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 .model-opt {
-  height: 38px;
+  height: 36px;
   padding: 0 10px;
+  border-radius: 8px;
   border: none;
-  border-radius: 7px;
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 12.3px;
+  background: transparent;
+  color: var(--color-text);
   font-family: inherit;
+  font-size: 13px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
+}
+.model-opt span {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.model-opt.current { color: var(--color-accent); }
-.model-opt:active { background: var(--color-neutral-900); }
+.model-opt.current { background: color-mix(in srgb, var(--color-accent) 16%, transparent); }
 .model-none {
-  padding: 10px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 12.5px;
   color: var(--color-neutral-500);
 }
 .infer-btn {
   height: 30px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid var(--color-neutral-800);
-  background: none;
-  color: var(--color-neutral-300);
-  font-size: 11.8px;
-  font-family: inherit;
-  cursor: pointer;
-}
-.infer-btn.on {
-  border-color: var(--color-accent-700);
-  background: var(--color-accent-900);
-  color: var(--color-accent);
-  font-weight: 700;
-}
-.infer-btn:disabled { opacity: 0.5; cursor: default; }
-
-/* — 최근 로그 — */
-.prev-logs {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  margin: 15px 16px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.prev-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12.8px;
-  color: var(--color-neutral-400);
-}
-.view-all {
+  flex: none;
+  padding: 0 11px;
+  border-radius: 100px;
   border: none;
-  background: none;
-  color: var(--color-accent);
+  background: var(--color-neutral-800);
+  color: var(--color-text);
+  font-family: inherit;
   font-size: 12px;
   cursor: pointer;
-  font-family: inherit;
-  padding: 4px;
+  white-space: nowrap;
+  transition: background 0.15s;
 }
-.prev-list {
+.infer-btn.on { background: color-mix(in srgb, var(--color-accent) 28%, transparent); }
+.infer-btn:disabled { opacity: 0.6; cursor: default; }
+
+.log-rule {
+  flex: none;
+  height: 1px;
+  background: var(--color-divider);
+}
+.log-list {
   flex: 1;
   min-height: 0;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: 8px;
+  gap: 8px;
+  padding-right: 8px;
 }
-.prev-entry {
-  flex: none;
-  display: flex;
-  gap: 10px;
-  font-size: 12.8px;
-  line-height: 1.5;
-}
-.prev-text { color: var(--color-neutral-300); }
 </style>

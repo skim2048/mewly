@@ -68,7 +68,11 @@ function save() {
   if (f.cat === CATEGORY_CUSTOM.ko && !f.custom.trim()) { error.value = t('sched.errName'); return }
   if (timeErr.value) { error.value = t('sched.timeErr'); return }
   const title = f.cat === CATEGORY_CUSTOM.ko ? f.custom.trim() : f.cat
+  // @claude 시안: 저장은 신규·수정 모두 현재 선택일로 날짜를 기록한다
+  // @claude (범위 일정을 수정하면 단일 일자로 재기록됨 — 시안 동작 그대로).
   const base = {
+    date: props.date,
+    endDate: undefined,
     title,
     alarm: f.alarm,
     repeat: f.repeat,
@@ -77,7 +81,7 @@ function save() {
     end: f.allDay ? undefined : f.end,
   }
   if (editing) updateSchedule(editing.id, base)
-  else addSchedule({ date: props.date, ...base })
+  else addSchedule(base)
   emit('close')
 }
 

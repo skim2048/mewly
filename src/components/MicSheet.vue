@@ -35,13 +35,17 @@ onBeforeUnmount(() => { talking.value = false })
 </script>
 
 <template>
-  <SheetFrame :title="t('mic.title')" @close="emit('close')">
+  <SheetFrame :title="t('dev.mic')" @close="emit('close')">
     <div class="mic-body">
       <div class="mic-stage">
         <button
           class="mic-btn"
           :class="{ on: talking }"
-          @click="talking = !talking"
+          @pointerdown.prevent="talking = true"
+          @pointerup="talking = false"
+          @pointercancel="talking = false"
+          @pointerleave="talking = false"
+          @contextmenu.prevent
         >
           <i :class="talking ? 'ph-fill ph-microphone' : 'ph ph-microphone'"></i>
         </button>
@@ -78,7 +82,6 @@ onBeforeUnmount(() => { talking.value = false })
         </div>
       </div>
 
-      <span class="sheet-note">{{ talking ? t('mic.noteTalking') : t('mic.noteIdle') }}</span>
     </div>
   </SheetFrame>
 </template>
@@ -97,6 +100,9 @@ onBeforeUnmount(() => { talking.value = false })
   padding: 24px 16px 20px;
 }
 .mic-btn {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   width: 124px; height: 124px;
   border-radius: 62px;
   border: 1px solid var(--color-neutral-800);
@@ -127,10 +133,6 @@ onBeforeUnmount(() => { talking.value = false })
   border-radius: 3px;
   transform-origin: bottom;
   transition: height 0.2s, background 0.2s;
-}
-@keyframes micbar {
-  0%, 100% { transform: scaleY(0.3); }
-  50% { transform: scaleY(1); }
 }
 .mic-chip {
   margin-top: -18px;

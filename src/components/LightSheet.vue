@@ -45,25 +45,22 @@ const orbIconStyle = computed(() => ({
     : 'var(--color-neutral-700)',
 }))
 
-const PRESETS = [
-  { key: 'sleep', icon: 'ph ph-moon', label: () => t('light.preset.sleep') },
-  { key: 'room', icon: 'ph ph-house', label: () => t('light.preset.room') },
-  { key: 'max', icon: 'ph ph-sun', label: () => t('light.preset.max') },
-]
-const presetRows = computed(() => PRESETS.map((p) => {
-  const step = light.value.presets[p.key]
-  return { ...p, value: step * 20, on: !saveMode.value && light.value.step === step }
+// 프리셋: PTZ와 동일한 숫자 4슬롯 (사용자 확정)
+const PRESET_SLOTS = [1, 2, 3, 4]
+const presetRows = computed(() => PRESET_SLOTS.map((slot) => {
+  const step = light.value.presets[slot]
+  return { slot, value: step * 20, on: !saveMode.value && light.value.step === step }
 }))
 
-function onPreset(key) {
+function onPreset(slot) {
   if (saveMode.value) {
     light.value = {
       ...light.value,
-      presets: { ...light.value.presets, [key]: light.value.step },
+      presets: { ...light.value.presets, [slot]: light.value.step },
     }
     saveMode.value = false
   } else {
-    light.value = { ...light.value, step: light.value.presets[key] }
+    light.value = { ...light.value, step: light.value.presets[slot] }
   }
 }
 
@@ -141,15 +138,14 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
         <div class="preset-row">
           <button
             v-for="p in presetRows"
-            :key="p.key"
+            :key="p.slot"
             class="preset-btn"
             :class="{ on: p.on }"
-            @click="onPreset(p.key)"
+            @click="onPreset(p.slot)"
           >
             <span class="preset-top">
               <i v-if="saveMode" class="ph ph-bookmark-simple save-mark"></i>
-              <i :class="p.icon"></i>
-              <span :class="{ bold: p.on }">{{ p.label() }}</span>
+              <span class="preset-num" :class="{ bold: p.on }">{{ p.slot }}</span>
             </span>
             <span class="preset-sub">{{ p.value }}%</span>
           </button>
@@ -187,7 +183,6 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
         </div>
       </div>
 
-      <span class="sheet-note">{{ t('light.note') }}</span>
     </div>
   </SheetFrame>
 </template>

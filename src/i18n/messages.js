@@ -15,13 +15,17 @@ export const messages = {
   'dashboard.panel.log': { en: 'Inference log', ko: '추론 로그' },
   'dashboard.model.unknown': { en: 'Unknown model', ko: '모델 미확인' },
   'dashboard.model.none': { en: 'No models available', ko: '사용 가능한 모델이 없습니다' },
+  'dashboard.log.waiting': {
+    en: 'No inference reports yet.',
+    ko: '추론 보고가 아직 없습니다.',
+  },
   'dashboard.day.yesterday': { en: 'Yesterday', ko: '어제' },
   'login.usernamePlaceholder': { en: 'User ID', ko: '아이디' },
   'login.passwordPlaceholder': { en: 'Password', ko: '비밀번호' },
   'login.backendHostPlaceholder': { en: 'Backend address', ko: '백엔드 주소' },
-  'login.rememberMe': { en: 'Keep me signed in', ko: '로그인 유지' },
+  'login.rememberMe': { en: 'Stay signed in', ko: '로그인 유지' },
   'login.submit': { en: 'Connect', ko: '연결' },
-  'login.loading': { en: 'Connecting ...', ko: '연결 중 ...' },
+  'login.loading': { en: 'Connecting …', ko: '연결 중 …' },
   'login.error.invalidCredentials': {
     en: 'The ID or password is incorrect.',
     ko: '아이디 또는 비밀번호가 올바르지 않습니다.',
@@ -31,27 +35,28 @@ export const messages = {
     ko: '시도 횟수를 초과했습니다. {seconds}초 후 다시 시도하세요.',
   },
   'login.error.hostUnreachable': {
-    en: 'Cannot reach the backend address. Check the address and the network.',
-    ko: '백엔드 주소에 연결할 수 없습니다. 주소와 네트워크를 확인하세요.',
+    en: 'Cannot reach the backend. Check the address and network.',
+    ko: '백엔드에 연결할 수 없습니다. 주소와 네트워크를 확인하세요.',
   },
   'login.notice.sessionReplaced': {
-    en: 'A sign-in from another device ended your previous session.',
-    ko: '다른 기기에서 로그인하여 이전 세션이 종료되었습니다.',
+    en: 'Your previous session was replaced by a sign-in on another device.',
+    ko: '이전 세션이 다른 기기의 로그인으로 대체되었습니다.',
   },
 
-  'camera.field.username': { en: 'Camera account', ko: '카메라 계정' },
+  'camera.field.username': { en: 'ID', ko: '아이디' },
   'camera.field.password': { en: 'Password', ko: '비밀번호' },
   'camera.field.passwordPlaceholder': { en: 'Keep saved password', ko: '저장된 비밀번호 유지' },
   'camera.field.host': { en: 'Host', ko: '호스트' },
   'camera.field.rtspPort': { en: 'RTSP port', ko: 'RTSP 포트' },
-  'camera.field.onvifPort': { en: 'ONVIF port (optional)', ko: 'ONVIF 포트 (선택)' },
+  'camera.field.onvifPort': { en: 'ONVIF port', ko: 'ONVIF 포트' },
   'camera.field.streamPath': { en: 'Stream path', ko: '스트림 경로' },
   'camera.action.save': { en: 'Save profile', ko: '프로필 저장' },
   'camera.streaming.start': { en: 'Start streaming', ko: '스트리밍 시작' },
   'camera.streaming.stop': { en: 'Stop streaming', ko: '스트리밍 정지' },
+  'camera.savedMsg': { en: 'Profile saved.', ko: '프로필을 저장했습니다.' },
   'camera.streaming.pending': {
-    en: 'The registered profile has not been applied yet. Start streaming to apply it.',
-    ko: '등록된 프로필이 아직 적용되지 않았습니다. 스트리밍을 시작하면 적용됩니다.',
+    en: 'The saved profile is not applied to the running stream yet. It takes effect on the next connection.',
+    ko: '저장한 프로필이 재생 중인 스트림에 아직 반영되지 않았습니다. 다시 연결할 때 적용됩니다.',
   },
   'camera.streaming.failed': { en: 'Request failed', ko: '요청 실패' },
   'camera.error.loadStatus': {
@@ -100,12 +105,12 @@ export const messages = {
     ko: '서버 연결에 실패했습니다.',
   },
 
-  'prompt.label.query': { en: 'Inference prompt', ko: '추론 프롬프트' },
-  'prompt.label.triggers': { en: 'Event Keywords', ko: '이벤트 키워드' },
-  'prompt.placeholder.query': { en: 'e.g. Describe what the person is doing', ko: '예: 사람이 무엇을 하는지 설명' },
-  'prompt.placeholder.triggers': { en: 'e.g. person, walking', ko: '예: person, walking' },
-  'prompt.action.apply': { en: 'Save settings', ko: '설정 저장' },
-  'prompt.action.revert': { en: 'Cancel', ko: '취소' },
+  'prompt.label.query': { en: 'Prompt', ko: '프롬프트' },
+  'prompt.label.triggers': { en: 'Keywords', ko: '키워드' },
+  'prompt.status.applied': {
+    en: 'Settings saved. Inference was not started.',
+    ko: '설정을 저장했습니다. 추론은 시작되지 않았습니다.',
+  },
   'prompt.action.start': { en: 'Start', ko: '시작' },
   'prompt.action.stop': { en: 'Stop', ko: '정지' },
   'prompt.status.needStreaming': {
@@ -119,18 +124,14 @@ export const messages = {
   'clips.preset.today': { en: 'Today', ko: '오늘' },
   'clips.preset.yesterday': { en: 'Yesterday', ko: '어제' },
 
-  'player.play': { en: 'Play', ko: '재생' },
-  'player.pause': { en: 'Pause', ko: '일시정지' },
-  'player.close': { en: 'Close', ko: '닫기' },
-
-  'session.title': { en: 'Session expiring', ko: '세션 만료 예정' },
+  'session.title': { en: 'Session expiring', ko: '세션 만료 임박' },
   'session.copy': {
-    en: 'You will be logged out automatically after {seconds} seconds. Extend the session to keep using the app.',
-    ko: '{seconds}초 후 자동 로그아웃됩니다. 계속 사용하려면 세션을 연장하세요.',
+    en: '{time} left. Extend the session?',
+    ko: '남은 시간 {time}. 세션을 연장하시겠습니까?',
   },
   'session.extend': { en: 'Extend', ko: '연장' },
-  'session.extending': { en: 'Extending...', ko: '연장 중...' },
-  'session.logout': { en: 'Log Out', ko: '로그아웃' },
+  'session.extending': { en: 'Extending…', ko: '연장 중…' },
+  'session.logout': { en: 'Sign out', ko: '로그아웃' },
 
   'live.ptz.up': { en: 'Tilt Up', ko: '위' },
   'live.ptz.down': { en: 'Tilt Down', ko: '아래' },
@@ -275,21 +276,7 @@ export const messages = {
   'home.connCancel': { en: 'Connecting — tap to cancel', ko: '연결 중 — 탭하여 취소' },
   'home.noCam': { en: 'No camera profile registered', ko: '등록된 카메라 프로필이 없습니다' },
   'home.noCamHint': { en: 'Register one in Settings → Camera', ko: '설정 → 카메라 설정에서 등록하세요' },
-  'home.prevLogs': { en: 'Latest 10 logs', ko: '최근 로그 10건' },
-  'home.viewAll': { en: 'View all', ko: '전체 보기' },
   'home.noLogs': { en: 'No logs.', ko: '로그가 없습니다.' },
-  'home.latestErr': {
-    en: 'Inference stopped on a model error. Logs are not updating.',
-    ko: '모델 오류로 추론이 중단되었습니다. 로그가 갱신되지 않습니다.',
-  },
-  'home.latestWait': {
-    en: 'Logs will appear here once the model is ready.',
-    ko: '모델이 준비되면 로그가 여기에 표시됩니다.',
-  },
-  'home.latestNone': {
-    en: 'No logs yet. Captions appear here as inference produces them.',
-    ko: '로그가 없습니다. 추론이 문장을 만들면 여기에 표시됩니다.',
-  },
   'dev.light': { en: 'Light', ko: '조명' },
   'dev.temp': { en: 'Temp', ko: '온도' },
   'dev.mic': { en: 'Mic', ko: '마이크' },
@@ -306,16 +293,11 @@ export const messages = {
   'rec.selected': { en: '{count} selected', ko: '{count}개 선택됨' },
   'rec.empty': { en: 'No records', ko: '기록이 없습니다' },
   'rec.noMatch': { en: 'No records match “{q}”', ko: '‘{q}’에 맞는 기록이 없습니다' },
+  'rec.tapClose': { en: 'Tap to close', ko: '탭하여 닫기' },
 
-  'mic.title': { en: 'Talk', ko: '말하기' },
   'mic.idle': { en: 'Idle', ko: '대기 중' },
   'mic.talking': { en: 'Transmitting', ko: '전송 중' },
   'mic.volume': { en: 'Speaker volume', ko: '스피커 음량' },
-  'mic.noteIdle': {
-    en: 'Press the button to send your voice to the camera speaker.',
-    ko: '버튼을 누르면 카메라 스피커로 목소리가 전달됩니다.',
-  },
-  'mic.noteTalking': { en: 'Talking now. Press again to stop.', ko: '말하는 중입니다. 다시 누르면 멈춥니다.' },
 
   'temp.target': { en: 'Target', ko: '희망 온도' },
   'temp.current': { en: 'Current', ko: '현재 온도' },
@@ -332,10 +314,6 @@ export const messages = {
     en: 'Set the temperature, then pick the target preset',
     ko: '온도 설정 후 저장할 프리셋을 선택하세요',
   },
-  'temp.preset.sleep': { en: 'Sleep', ko: '취침' },
-  'temp.preset.active': { en: 'Active', ko: '활동' },
-  'temp.preset.eco': { en: 'Eco', ko: '절전' },
-  'temp.note': { en: 'Adjusts in 1°C steps between 16 and 30°C.', ko: '16 – 30°C 사이에서 1°C 단위로 조절합니다.' },
 
   'light.turnOn': { en: 'Turn on', ko: '조명 켜기' },
   'light.turnOff': { en: 'Turn off', ko: '조명 끄기' },
@@ -344,24 +322,24 @@ export const messages = {
     en: 'Set the level, then pick the target preset',
     ko: '조도 설정 후 저장할 프리셋을 선택하세요',
   },
-  'light.preset.sleep': { en: 'Sleep', ko: '취침' },
-  'light.preset.room': { en: 'Room', ko: '실내' },
-  'light.preset.max': { en: 'Max', ko: '최대' },
   'light.night': { en: 'Night mode', ko: '나이트 모드' },
   'light.nightOnSub': { en: 'Keeps the light off during this window', ko: '이 시간대에는 조명을 끕니다' },
   'light.nightOffSub': { en: 'Not in use', ko: '사용하지 않습니다' },
   'light.nightUse': { en: 'Use', ko: '사용' },
   'light.nightStop': { en: 'Turn off', ko: '사용 안 함' },
-  'light.note': { en: 'Adjusts in 20% steps. Picking 0% turns the light off.', ko: '20% 단위로 조절합니다. 0%를 고르면 조명이 꺼집니다.' },
 
   'ptz.patrol': { en: 'Auto patrol', ko: '자동 순찰' },
   'ptz.patrolSub': { en: 'Cycles through the presets in order', ko: '프리셋을 순서대로 순회합니다' },
   'ptz.patrolInterval': { en: 'Switch interval', ko: '전환 간격' },
   'ptz.patrolOff': { en: 'Off', ko: '사용 안 함' },
   'ptz.patrolOffSub': { en: 'Not in use', ko: '사용하지 않습니다' },
+  'ptz.direction': { en: 'Direction', ko: '방향 제어' },
+  'ptz.pan': { en: 'Pan', ko: '팬' },
+  'ptz.tilt': { en: 'Tilt', ko: '틸트' },
+  'ptz.presetsPatrolling': { en: 'Presets (patrolling)', ko: '프리셋 (자동 순찰 중)' },
 
-  // @claude toast.* 3종은 기기 제어(조명·온도·마이크·순찰) 실패 안내로,
-  // @claude 목업 단계에서는 발화 지점이 없다. 실기기 연동 시 배선한다.
+  // @claude toast.* 3종은 기기 제어 실패 안내(MainView의 device-toast에서 표시).
+  // @claude 목업 단계에서는 발화 지점이 없고, 실기기 연동 시 useToast.showToast로 띄운다.
   'toast.timeout': {
     en: 'The device is not responding. Try again in a moment.',
     ko: '기기가 응답하지 않습니다. 잠시 후 다시 시도하세요.',
@@ -370,6 +348,10 @@ export const messages = {
   'toast.busy': {
     en: 'Unavailable right now — another control is in progress.',
     ko: '지금은 사용할 수 없습니다. 다른 제어가 진행 중입니다.',
+  },
+  'toast.patrolLock': {
+    en: 'Auto patrol — manual control is locked',
+    ko: '자동 순찰 중 — 수동 조작이 잠겨 있습니다',
   },
 
   'set.rowCam': { en: 'Camera', ko: '카메라' },

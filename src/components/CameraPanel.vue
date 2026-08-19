@@ -23,8 +23,9 @@ const local = reactive({
   onvif_port: null,
 })
 
-const showPassword = ref(false)
 const passwordLoaded = ref(false)
+// 시안: 저장 후 안내 박스(재생 중이면 「다음 연결 때 적용」, 아니면 저장 완료)
+const saved = ref(false)
 
 onMounted(() => {
   Object.assign(local, {
@@ -49,18 +50,13 @@ function onPasswordFocus() {
   }
 }
 
-function togglePasswordVisibility() {
-  if (!passwordLoaded.value) {
-    showPassword.value = !showPassword.value
-  }
-}
-
 async function handleSave() {
   // @claude Copy local edits into the shared config, then save. The panel
   // @claude stays open — closing hides the profile-pending notice, and only
   // @claude the close/cancel buttons should dismiss it.
   Object.assign(config, local)
   await save()
+  if (!status.value) saved.value = true
 }
 
 // @claude FR-048/FR-049: registration never connects the source; these
@@ -92,26 +88,25 @@ function toggleStreaming() {
 
 <template>
   <div class="form-col">
-    <div v-if="status" class="form-note"><i class="ph ph-info"></i><span>{{ status }}</span></div>
-    <div v-if="state.profile_pending" class="form-note warn"><i class="ph ph-info"></i><span>{{ t('camera.streaming.pending') }}</span></div>
-    <div v-if="streamStatus" class="form-note warn"><i class="ph ph-info"></i><span>{{ streamStatus }}</span></div>
+    <div v-if="status" class="notice-box"><i class="ph ph-warning-circle"></i><span>{{ status }}</span></div>
+    <!-- 시안: 저장 후 안내 — 재생 중이면 pending, 아니면 저장 완료 -->
+    <div v-if="saved" class="notice-box">
+      <i class="ph ph-info"></i>
+      <span>{{ state.profile_pending ? t('camera.streaming.pending') : t('camera.savedMsg') }}</span>
+    </div>
+    <div v-if="streamStatus" class="notice-box"><i class="ph ph-warning-circle"></i><span>{{ streamStatus }}</span></div>
 
     <label class="form-field">{{ t('camera.field.username') }}
       <input v-model="local.username" placeholder="admin" />
     </label>
     <label class="form-field">{{ t('camera.field.password') }}
-        <span class="pw-wrap">
-          <input
-            v-model="local.password"
-            :class="{ 'pw-loaded': passwordLoaded }"
-            :type="showPassword ? 'text' : 'password'"
-            :placeholder="passwordLoaded ? t('camera.field.passwordPlaceholder') : ''"
-            @focus="onPasswordFocus"
-          />
-          <button type="button" class="pw-toggle" :class="{ disabled: passwordLoaded }" tabindex="-1" @click="togglePasswordVisibility">
-            <i :class="showPassword ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
-          </button>
-        </span>
+      <input
+        v-model="local.password"
+        :class="{ 'pw-loaded': passwordLoaded }"
+        type="password"
+        :placeholder="passwordLoaded ? t('camera.field.passwordPlaceholder') : ''"
+        @focus="onPasswordFocus"
+      />
     </label>
     <label class="form-field">{{ t('camera.field.host') }}
       <input v-model="local.ip" placeholder="192.168.1.101" />
@@ -138,28 +133,24 @@ function toggleStreaming() {
 </template>
 
 <style scoped>
-.pw-wrap {
-  position: relative;
+.notice-box {
   display: flex;
-  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--color-neutral-900);
+  border-left: 2px solid var(--color-accent);
+  align-items: flex-start;
+  font-size: 12.3px;
+  line-height: 1.55;
+  color: var(--color-neutral-300);
 }
-.pw-wrap input { padding-right: 40px; }
-.pw-toggle {
-  position: absolute;
-  right: 6px;
-  width: 30px; height: 30px;
-  border: none;
-  background: none;
-  color: var(--color-neutral-500);
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.notice-box i {
+  flex: none;
+  font-size: 15.8px;
+  color: var(--color-accent);
+  margin-top: 1px;
 }
-.pw-toggle:hover { background: var(--color-neutral-900); color: var(--color-text); }
-.pw-toggle.disabled { opacity: 0.4; cursor: default; }
 input.pw-loaded { color: var(--color-neutral-500); }
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {

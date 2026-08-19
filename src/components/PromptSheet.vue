@@ -32,8 +32,12 @@ watch(
   { immediate: true },
 )
 
-// @claude 시안: 저장은 시트를 닫고, 취소·닫기·배경 클릭은 마지막 저장
-// @claude 상태로 되돌린 뒤 닫는다.
+// @claude 시안: 저장은 모달을 유지한 채 「저장했습니다 · 추론 미시작」 안내를
+// @claude 띄우고, 취소·닫기·배경 클릭은 마지막 저장 상태로 되돌린 뒤 닫는다.
+const applied = ref(false)
+
+watch([prompt, triggers], () => { applied.value = false })
+
 async function apply() {
   if (!prompt.value.trim()) return
   errorNote.value = ''
@@ -48,7 +52,7 @@ async function apply() {
       savedPrompt.value = prompt.value
       savedTriggers.value = triggers.value
       clearRejected()
-      emit('close')
+      applied.value = true
     } else {
       errorNote.value = t('prompt.status.error', { message: data.error || t('prompt.status.unknown') })
     }
@@ -68,24 +72,49 @@ function revertAndClose() {
 <template>
   <ModalFrame :title="t('set.rowPrompt')" @close="revertAndClose">
     <div class="form-col">
-      <div v-if="rejected" class="form-note warn">
+      <div v-if="rejected" class="notice-box">
         <i class="ph ph-info"></i><span>{{ t('prompt.status.needStreaming') }}</span>
       </div>
-      <div v-if="errorNote" class="form-note warn">
-        <i class="ph ph-info"></i><span>{{ errorNote }}</span>
+      <div v-if="errorNote" class="notice-box">
+        <i class="ph ph-warning-circle"></i><span>{{ errorNote }}</span>
+      </div>
+      <!-- 시안: 저장 후 모달을 유지하며 저장·추론 미시작 안내를 표시 -->
+      <div v-if="applied" class="notice-box">
+        <i class="ph ph-info"></i><span>{{ t('prompt.status.applied') }}</span>
       </div>
 
       <label class="form-field">{{ t('prompt.label.query') }}
-        <textarea v-model="prompt" :placeholder="t('prompt.placeholder.query')" rows="4" />
+        <textarea v-model="prompt" rows="4" />
       </label>
       <label class="form-field">{{ t('prompt.label.triggers') }}
-        <input v-model="triggers" :placeholder="t('prompt.placeholder.triggers')" />
+        <input v-model="triggers" />
       </label>
 
       <div class="form-actions">
-        <button class="form-btn primary" @click="apply">{{ t('prompt.action.apply') }}</button>
-        <button class="form-btn" @click="revertAndClose">{{ t('prompt.action.revert') }}</button>
+        <button class="form-btn primary" @click="apply">{{ t('common.save') }}</button>
+        <button class="form-btn" @click="revertAndClose">{{ t('common.cancel') }}</button>
       </div>
     </div>
   </ModalFrame>
 </template>
+
+<style scoped>
+.notice-box {
+  display: flex;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--color-neutral-900);
+  border-left: 2px solid var(--color-accent);
+  align-items: flex-start;
+  font-size: 12.3px;
+  line-height: 1.55;
+  color: var(--color-neutral-300);
+}
+.notice-box i {
+  flex: none;
+  font-size: 15.8px;
+  color: var(--color-accent);
+  margin-top: 1px;
+}
+</style>
