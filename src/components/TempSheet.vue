@@ -86,7 +86,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
           <span class="temp-chip" :class="{ on: running }">{{ runLabel }}</span>
         </span>
         <!-- 시안: title은 전환 「대상」 모드명 -->
-        <button class="orb-btn" :title="mode === 'cool' ? t('temp.heat') : t('temp.cool')" @click="toggleMode">
+        <button class="orb-btn" :aria-label="mode === 'cool' ? t('temp.heat') : t('temp.cool')" @click="toggleMode">
           <span class="orb" :style="orbStyle">
             <i
               :class="mode === 'cool' ? 'ph ph-snowflake' : 'ph-fill ph-fire-simple'"

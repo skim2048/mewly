@@ -72,13 +72,13 @@ async function handleLogin() {
 
     <div class="login-fields">
       <label class="form-field on-bg">{{ t('login.usernamePlaceholder') }}
-        <input v-model="username" type="text" autocomplete="username" required />
+        <input v-model="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" enterkeyhint="next" required />
       </label>
       <label class="form-field on-bg">{{ t('login.passwordPlaceholder') }}
-        <input v-model="password" type="password" autocomplete="current-password" required />
+        <input v-model="password" type="password" autocomplete="current-password" enterkeyhint="next" required />
       </label>
       <label class="form-field on-bg">{{ t('login.backendHostPlaceholder') }}
-        <input v-model="mewlyHost" type="text" autocomplete="off" spellcheck="false" @change="normalizeHostField" />
+        <input v-model="mewlyHost" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" enterkeyhint="go" @change="normalizeHostField" />
       </label>
       <button type="button" class="login-remember" @click="rememberMe = !rememberMe">
         <span class="login-check" :class="{ on: rememberMe }"><svg v-if="rememberMe" class="check-glyph" viewBox="0 0 12 12" aria-hidden="true"><polyline points="2.5,6.5 5,9 9.5,3.5" /></svg></span>
@@ -104,7 +104,8 @@ async function handleLogin() {
 }
 
 .login-page {
-  min-height: 100vh;
+  min-height: 100vh; /* dvh 미지원 폴백 */
+  min-height: 100dvh;
   background: var(--color-bg);
   display: flex;
   flex-direction: column;

@@ -155,6 +155,8 @@ const group2 = computed(() => [
   font-size: 13.8px;
 }
 .row-item.divided { border-bottom: 1px solid var(--color-divider); }
+/* 설정 리스트 행 프레스 피드백 — 네이티브 설정 화면의 표준 감각 */
+.row-item:active { background: var(--bg-surface-active); }
 .row-item > i:first-child {
   font-size: 17px;
   color: var(--color-neutral-400);

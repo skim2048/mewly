@@ -5,6 +5,7 @@ import { useSSE } from '../composables/useSSE.js'
 import { usePtz } from '../composables/usePtz.js'
 import { useToast } from '../composables/useToast.js'
 import { useLocale } from '../composables/useLocale.js'
+import { tapLight } from '../native/init.js'
 
 const props = defineProps({
   active: { type: Boolean, default: false }, // 재생 중 여부 — 낙관적 활성 정책의 사전 비활성 판단
@@ -66,6 +67,7 @@ function ptzDown(dir, event) {
   }
   if (!props.active) return
   event.preventDefault()
+  tapLight()
   ptzPressing.value = dir.id
   stepOnce(dir)
   clearInterval(stepTimer)
@@ -268,14 +270,14 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
               :key="dir.id"
               class="ptz-dir"
               :class="[dir.id, { pressing: ptzPressing === dir.id, off: patrolEnabled }]"
-              :title="t(`live.ptz.${dir.id}`)"
+              :aria-label="t(`live.ptz.${dir.id}`)"
               @pointerdown="(e) => ptzDown(dir, e)"
               @pointerup="ptzUp(dir)"
               @pointercancel="ptzUp(dir)"
               @pointerleave="ptzUp(dir)"
             ><i :class="`ph ph-caret-${dir.id}`"></i></button>
             <!-- 사용자 확정: 중앙 버튼은 STOP(이동 정지) -->
-            <button class="ptz-stop" :class="{ off: patrolEnabled }" :title="t('live.ptz.stop')" @click="ptzStopNow">STOP</button>
+            <button class="ptz-stop" :class="{ off: patrolEnabled }" :aria-label="t('live.ptz.stop')" @click="ptzStopNow">STOP</button>
           </div>
         </div>
 

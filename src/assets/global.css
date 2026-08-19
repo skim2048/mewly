@@ -263,7 +263,30 @@ body {
 ::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--color-neutral-800); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-700); }
+
+/* ── Native app feel — 웹뷰 티 제거 ──
+   터치 하이라이트·텍스트 선택·오버스크롤 체이닝을 네이티브 앱처럼 통제한다.
+   PTZ/Mic 패드는 자체 touch-action: none(컴포넌트 스코프)이라 영향 없음. */
+html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+body { user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
+input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-select: text; }
+
+/* 터치 기기에서는 스크롤바를 숨긴다 — 데스크톱(Vite dev)은 위의 8px 스타일 유지 */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  * { scrollbar-width: none; }
+}
+
+/* 내부 스크롤 컨테이너: 오버스크롤을 리스트 안에 가둔다(Android 스트레치가 리스트에만 걸린다) */
+.sheet-body, .modal-frame, .settings-tab, .rec-list, .day-list,
+.fs-log-list, .log-list, .notif-list, .notifset-body,
+.breed-list, .profile-body, .editor-body {
+  overscroll-behavior: contain;
+}
+
+/* 모든 버튼 공통 프레스 피드백 — 개별 :active 배경 규칙은 이 위에 얹힌다 */
+button { transition: opacity 0.2s ease; }
+button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
    공용 컴포넌트 층 — 개정판 시안의 어법(채움 버튼·채움 입력란).
@@ -287,7 +310,6 @@ body {
   background: color-mix(in srgb, var(--color-accent) 28%, transparent);
   color: var(--color-text); font-weight: 700;
 }
-.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
 .btn-primary:active { background: color-mix(in srgb, var(--color-accent) 48%, transparent); }
 /* — modal forms (개정판 시안의 폼 어법: 테두리 없는 채움) — */
 .form-col { display: flex; flex-direction: column; gap: 12px; }
@@ -333,11 +355,8 @@ body {
   font-size: 14.5px; font-family: inherit; cursor: pointer;
   transition: background 0.15s;
 }
-.form-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
 .form-btn.primary { background: color-mix(in srgb, var(--color-accent) 28%, transparent); font-weight: 700; }
-.form-btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
 .form-btn.danger { background: var(--color-bg); color: #e07a86; }
-.form-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
 .form-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* — compact chip buttons (34px, 필터·패널 조작 공용) — */
@@ -348,8 +367,60 @@ body {
   display: inline-flex; align-items: center; gap: 7px;
   transition: background 0.15s;
 }
-.chip-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
 .chip-btn.on { background: color-mix(in srgb, var(--color-accent) 16%, transparent); }
 .chip-btn.danger { color: #e07a86; }
-.chip-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
 .chip-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Hover styles — 진짜 호버 장치에서만. 터치에서는 탭 후 스티키 호버가 남으므로 가드 ── */
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-700); }
+  .btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
+  .form-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+  .form-btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
+  .form-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
+  .chip-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+  .chip-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   Layer transitions — MainView.vue의 <Transition name="layer"> 래퍼와 결합.
+   프레임 루트(.sheet-backdrop / .modal-backdrop / .overlay-shell)에 전환 클래스가
+   붙고, 내부 패널은 자손 셀렉터로 움직인다. 백드롭은 background-color만 페이드
+   (루트 opacity를 쓰면 패널까지 함께 페이드되므로 금지). 백드롭 클래스를 두 번
+   겹쳐 쓰는 것은 scoped CSS와의 특이도 경합에서 이기기 위함이다.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.layer-enter-active, .layer-leave-active { transition: background-color 0.25s ease; }
+.layer-enter-active .sheet-frame, .layer-leave-active .sheet-frame,
+.layer-enter-active .modal-frame, .layer-leave-active .modal-frame {
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+/* 시트: 아래에서 올라온다 */
+.layer-enter-from .sheet-frame, .layer-leave-to .sheet-frame { transform: translateY(100%); }
+/* 모달: 스케일 팝 */
+.layer-enter-from .modal-frame, .layer-leave-to .modal-frame { transform: scale(0.94); opacity: 0; }
+/* 백드롭: 페이드 */
+.layer-enter-from.sheet-backdrop.sheet-backdrop, .layer-leave-to.sheet-backdrop.sheet-backdrop,
+.layer-enter-from.modal-backdrop.modal-backdrop, .layer-leave-to.modal-backdrop.modal-backdrop {
+  background-color: transparent;
+}
+/* 전체화면 오버레이: 오른쪽에서 밀려 들어온다(push된 페이지처럼) */
+.layer-enter-active.overlay-shell.overlay-shell, .layer-leave-active.overlay-shell.overlay-shell {
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.layer-enter-from.overlay-shell.overlay-shell, .layer-leave-to.overlay-shell.overlay-shell {
+  transform: translateX(100%);
+}
+
+/* 토스트 — .device-toast는 translateX(-50%) 센터링을 쓰므로 transform을 통째로 지정 */
+.toast-enter-active, .toast-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.toast-enter-from, .toast-leave-to { opacity: 0; }
+.toast-enter-from.device-toast.device-toast,
+.toast-leave-to.device-toast.device-toast { transform: translate(-50%, 12px); }
+
+/* 접근성: 시스템의 '동작 줄이기' 설정을 존중한다 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

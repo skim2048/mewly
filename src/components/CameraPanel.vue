@@ -109,14 +109,14 @@ function toggleStreaming() {
       />
     </label>
     <label class="form-field">{{ t('camera.field.host') }}
-      <input v-model="local.ip" placeholder="192.168.1.101" />
+      <input v-model="local.ip" inputmode="decimal" placeholder="192.168.1.101" />
     </label>
     <div class="form-row">
       <label class="form-field">{{ t('camera.field.rtspPort') }}
-        <input v-model.number="local.rtsp_port" type="number" />
+        <input v-model.number="local.rtsp_port" type="number" inputmode="numeric" enterkeyhint="next" />
       </label>
       <label class="form-field">{{ t('camera.field.onvifPort') }}
-        <input v-model.number="local.onvif_port" type="number" placeholder="2020" />
+        <input v-model.number="local.onvif_port" type="number" inputmode="numeric" enterkeyhint="next" placeholder="2020" />
       </label>
     </div>
     <label class="form-field">{{ t('camera.field.streamPath') }}

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onActivated, onMounted, onBeforeUnmount } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
@@ -14,6 +14,8 @@ import { getHlsUrl, getWhepUrl, APP_ENDPOINTS } from '../endpoints.js'
 import { authFetch } from '../composables/useFetch.js'
 import { withDayHeaders } from '../composables/dates.js'
 import { useToast } from '../composables/useToast.js'
+import { onBackButton } from '../native/backButton.js'
+import { setStatusBarHidden } from '../native/init.js'
 
 const emit = defineEmits(['open-sheet', 'open-modal'])
 
@@ -67,6 +69,19 @@ function exitFullscreen() {
     try { screen.orientation?.lock?.('portrait')?.catch?.(() => {}) } catch {}
   }
 }
+
+// @claude 풀스크린 공통 후처리 — 진입 경로가 둘(방향 전환·버튼)이라 watch로
+// @claude 일원화한다: 상태바 숨김/복귀 + Android 뒤로가기로 이탈(소비).
+let offFsBack = null
+watch(fullscreen, (fs) => {
+  setStatusBarHidden(fs)
+  if (fs && !offFsBack) {
+    offFsBack = onBackButton(() => { exitFullscreen(); return true })
+  } else if (!fs && offFsBack) {
+    offFsBack()
+    offFsBack = null
+  }
+})
 
 // ── VLM card ──
 const modelMenu = ref(false)
@@ -510,8 +525,23 @@ onMounted(() => {
   if (landscapeMq.matches) fullscreen.value = true
 })
 
+// @claude KeepAlive 탭 복귀 시 재생 재개. 탭 전환(v-if)은 DOM에서 <video>를
+// @claude 떼어내는데, HTML 스펙상 문서에서 제거된 미디어 요소는 자동 pause된다 —
+// @claude 연결(pc/hls)은 살아 있으므로 상태는 '연결됨'인데 화면만 멈춘다.
+// @claude 복귀 시 play()로 재개하고, HLS는 라이브 엣지로 재동기화한다.
+onActivated(() => {
+  const video = videoRef.value
+  if (!video || stopped.value) return
+  if (hls && Number.isFinite(hls.liveSyncPosition)) {
+    video.currentTime = hls.liveSyncPosition
+  }
+  if (video.paused) video.play().catch(() => {})
+})
+
 onBeforeUnmount(() => {
   landscapeMq?.removeEventListener('change', onOrientationChange)
+  if (offFsBack) { offFsBack(); offFsBack = null }
+  setStatusBarHidden(false)
   padUp()
   clearTimeout(padHoldTimer)
   destroyAll()
@@ -551,10 +581,10 @@ onBeforeUnmount(() => {
 
           <!-- 축소 화면: 연결 해제 + 전체 화면 -->
           <div v-if="!fullscreen && isPlaying" class="video-actions">
-            <button class="video-action" :title="t('live.disconnect')" @click="handleDisconnect">
+            <button class="video-action" :aria-label="t('live.disconnect')" @click="handleDisconnect">
               <i class="ph ph-plugs"></i>
             </button>
-            <button class="video-action" :title="t('live.fullscreen.enter')" @click="enterFullscreen">
+            <button class="video-action" :aria-label="t('live.fullscreen.enter')" @click="enterFullscreen">
               <i class="ph ph-corners-out"></i>
             </button>
           </div>
@@ -564,19 +594,19 @@ onBeforeUnmount(() => {
             <button
               v-if="isPlaying"
               class="fs-round"
-              :title="t('live.disconnect')"
+              :aria-label="t('live.disconnect')"
               @click="handleDisconnect"
             ><i class="ph ph-plugs"></i></button>
             <button
               class="fs-round"
               :class="{ on: fsLog }"
-              :title="t('dashboard.panel.log')"
+              :aria-label="t('dashboard.panel.log')"
               :aria-pressed="fsLog"
               @click="fsLog = !fsLog"
             ><i class="ph ph-list-dashes"></i></button>
             <button
               class="fs-round"
-              :title="t('live.fullscreen.exit')"
+              :aria-label="t('live.fullscreen.exit')"
               @click="exitFullscreen"
             ><i class="ph ph-corners-in"></i></button>
           </div>
@@ -599,7 +629,7 @@ onBeforeUnmount(() => {
                 <button
                   class="fs-ptz-btn center"
                   :class="{ off: !padActive }"
-                  :title="t('live.ptz.stop')"
+                  :aria-label="t('live.ptz.stop')"
                   @click="onPadStopPress"
                 >STOP</button>
               </div>
@@ -674,7 +704,7 @@ onBeforeUnmount(() => {
                 :key="m"
                 class="model-opt"
                 :class="{ current: m === sseState.vlm_current_model }"
-                :title="m"
+                :aria-label="m"
                 @click="switchModel(m)"
               ><span>{{ shortModelName(m) }}</span></button>
               <div v-if="!sseState.vlm_models.length" class="model-none">{{ t('dashboard.model.none') }}</div>

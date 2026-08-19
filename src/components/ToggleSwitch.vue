@@ -1,8 +1,15 @@
 <script setup>
+import { tapLight } from '../native/init.js'
+
 defineProps({
   modelValue: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue'])
+
+function onToggle(value) {
+  tapLight()
+  emit('update:modelValue', value)
+}
 </script>
 
 <template>
@@ -12,7 +19,7 @@ const emit = defineEmits(['update:modelValue'])
     :class="{ on: modelValue }"
     role="switch"
     :aria-checked="modelValue"
-    @click="emit('update:modelValue', !modelValue)"
+    @click="onToggle(!modelValue)"
   >
     <span class="knob"></span>
   </button>

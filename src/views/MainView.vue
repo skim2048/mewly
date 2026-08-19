@@ -1,6 +1,7 @@
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
+import { onBackButton } from '../native/backButton.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useStreamProtocol } from '../composables/useStreamProtocol.js'
@@ -63,6 +64,22 @@ function goTab(key) {
   sheet.value = null
   if (modalClosable.value) modal.value = null
 }
+
+// @claude Android 뒤로가기: 위 계층부터 하나씩 닫는다. 강제 비밀번호 변경
+// @claude 모달(FR-006)은 소비만 하고 닫지 않는다 — 뒤로가기로 우회 불가.
+// @claude HomeTab 풀스크린·ClipPlayerModal은 각자 등록한다(여기선 안 보임).
+const offBack = onBackButton(() => {
+  if (modal.value) {
+    if (modalClosable.value) modal.value = null
+    return true
+  }
+  if (schedEdit.value) { schedEdit.value = null; return true }
+  if (sheet.value) { sheet.value = null; return true }
+  if (overlay.value) { overlay.value = null; return true }
+  if (activeTab.value !== 'home') { activeTab.value = 'home'; return true }
+  return false // 홈 탭 루트 → backButton.js가 앱을 최소화
+})
+onUnmounted(offBack)
 
 // 알림 항목 탭: 이상행동 → 기록, 일정 알람 → 일정 (시안 동작)
 function onNotifOpen(kind) {
@@ -137,10 +154,10 @@ onMounted(loadCamera)
           class="proto-toggle"
           role="switch"
           :aria-checked="preferredProtocol === 'webrtc'"
-          :title="preferredProtocol === 'hls' ? 'WebRTC' : 'HLS'"
+          :aria-label="preferredProtocol === 'hls' ? 'WebRTC' : 'HLS'"
           @click="setProtocol(preferredProtocol === 'hls' ? 'webrtc' : 'hls')"
         >{{ preferredProtocol === 'hls' ? 'HLS' : 'WebRTC' }}</button>
-        <button class="bell" :title="t('notif.title')" @click="overlay = 'notifications'">
+        <button class="bell" :aria-label="t('notif.title')" @click="overlay = 'notifications'">
           <i class="ph ph-bell"></i>
           <span v-if="unreadCount" class="bell-badge">{{ unreadCount }}</span>
         </button>
@@ -173,11 +190,13 @@ onMounted(loadCamera)
     </main>
 
     <!-- ── 기기 제어 실패 토스트 (시안: 하단 80px 고정) ── -->
-    <div v-if="toast" class="device-toast">
-      <i class="ph ph-warning-circle toast-icon"></i>
-      <span class="toast-text">{{ t(`toast.${toast}`) }}</span>
-      <button class="toast-x" @click="hideToast"><i class="ph ph-x"></i></button>
-    </div>
+    <Transition name="toast">
+      <div v-if="toast" class="device-toast">
+        <i class="ph ph-warning-circle toast-icon"></i>
+        <span class="toast-text">{{ t(`toast.${toast}`) }}</span>
+        <button class="toast-x" @click="hideToast"><i class="ph ph-x"></i></button>
+      </div>
+    </Transition>
 
     <!-- ── Bottom navigation ── -->
     <nav class="bottom-nav">
@@ -194,51 +213,62 @@ onMounted(loadCamera)
     </nav>
 
     <!-- ── Full-screen overlays ── -->
-    <NotificationsOverlay
-      v-if="overlay === 'notifications'"
-      @close="overlay = null"
-      @open="onNotifOpen"
-    />
-    <ProfileOverlay v-else-if="overlay === 'profile'" @close="overlay = null" />
-    <NotifSettingsOverlay v-else-if="overlay === 'notifSettings'" @close="overlay = null" />
-    <ScheduleEditor
-      v-if="schedEdit"
-      :schedule-id="schedEdit.id"
-      :date="schedEdit.date"
-      @close="schedEdit = null"
-    />
+    <!-- @claude <Transition name="layer">: 전환 CSS는 global.css의 Layer transitions
+         블록(unscoped)에 있다 — 프레임 루트 클래스 기준이라 어느 레이어든 공통. -->
+    <Transition name="layer">
+      <NotificationsOverlay
+        v-if="overlay === 'notifications'"
+        @close="overlay = null"
+        @open="onNotifOpen"
+      />
+      <ProfileOverlay v-else-if="overlay === 'profile'" @close="overlay = null" />
+      <NotifSettingsOverlay v-else-if="overlay === 'notifSettings'" @close="overlay = null" />
+    </Transition>
+    <Transition name="layer">
+      <ScheduleEditor
+        v-if="schedEdit"
+        :schedule-id="schedEdit.id"
+        :date="schedEdit.date"
+        @close="schedEdit = null"
+      />
+    </Transition>
 
     <!-- ── Bottom sheets ── -->
-    <MicSheet v-if="sheet === 'mic'" @close="sheet = null" />
-    <TempSheet v-else-if="sheet === 'temp'" @close="sheet = null" />
-    <LightSheet v-else-if="sheet === 'light'" @close="sheet = null" />
-    <PtzSheet v-else-if="sheet === 'ptz'" :active="connected" @close="sheet = null" />
+    <Transition name="layer">
+      <MicSheet v-if="sheet === 'mic'" @close="sheet = null" />
+      <TempSheet v-else-if="sheet === 'temp'" @close="sheet = null" />
+      <LightSheet v-else-if="sheet === 'light'" @close="sheet = null" />
+      <PtzSheet v-else-if="sheet === 'ptz'" :active="connected" @close="sheet = null" />
+    </Transition>
 
     <!-- ── Centered modals ── -->
-    <ModalFrame v-if="modal === 'camera'" :title="modalTitle" @close="closeModal">
-      <CameraPanel @close="modal = null" />
-    </ModalFrame>
-    <PromptSheet v-else-if="modal === 'prompt'" @close="modal = null" />
-    <ResourcesSheet v-else-if="modal === 'resources'" @close="modal = null" />
-    <ModalFrame
-      v-else-if="modal === 'password'"
-      :title="modalTitle"
-      :closable="modalClosable"
-      :show-x="false"
-      @close="closeModal"
-    >
-      <ChangePasswordPanel :forced="mustChangePassword" @close="modal = null" />
-    </ModalFrame>
-    <ModalFrame v-else-if="modal === 'server'" :title="modalTitle" @close="closeModal">
-      <ServerPanel @close="modal = null" />
-    </ModalFrame>
+    <Transition name="layer">
+      <ModalFrame v-if="modal === 'camera'" :title="modalTitle" @close="closeModal">
+        <CameraPanel @close="modal = null" />
+      </ModalFrame>
+      <PromptSheet v-else-if="modal === 'prompt'" @close="modal = null" />
+      <ResourcesSheet v-else-if="modal === 'resources'" @close="modal = null" />
+      <ModalFrame
+        v-else-if="modal === 'password'"
+        :title="modalTitle"
+        :closable="modalClosable"
+        :show-x="false"
+        @close="closeModal"
+      >
+        <ChangePasswordPanel :forced="mustChangePassword" @close="modal = null" />
+      </ModalFrame>
+      <ModalFrame v-else-if="modal === 'server'" :title="modalTitle" @close="closeModal">
+        <ServerPanel @close="modal = null" />
+      </ModalFrame>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
 .app-frame {
   position: relative;
-  height: 100vh;
+  height: 100vh; /* dvh 미지원 폴백 */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--color-bg);
@@ -291,7 +321,10 @@ onMounted(loadCamera)
 /* — top app bar (시안: 58px, 홈=아바타+브랜드, 그 외=탭 제목) — */
 .topbar {
   position: relative;
-  height: 58px;
+  /* @claude edge-to-edge(안드 15+)에서 상태바 아래로 내용이 깔리지 않도록.
+     non-overlay 상태바(현행)에서는 inset이 0이라 58px 그대로다. */
+  height: calc(58px + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   flex: none;
   display: flex;
   align-items: center;

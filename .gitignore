@@ -23,5 +23,4 @@ npm-debug.log*
 .env.*
 !.env.example
 .codex
-.claude
 tmp/

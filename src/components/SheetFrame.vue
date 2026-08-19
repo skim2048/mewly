@@ -44,7 +44,7 @@ function onBackdrop(e) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  /* @claude 시안의 상향 그림자는 실기기에서 과하게 짙어 제거(사용자 확정) */
 }
 .sheet-handle {
   height: 22px;

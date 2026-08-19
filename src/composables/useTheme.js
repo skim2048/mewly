@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { applyNativeTheme } from '../native/init.js'
 
 const THEME_KEY = 'theme'
 const DEFAULT_THEME = 'dark'
@@ -37,6 +38,8 @@ const theme = ref(initialTheme())
 // @claude 로그인 화면과 로그인 후 화면이 같은 테마로 시작해야 한다.
 watch(theme, (value) => {
   applyTheme(value)
+  // 상태바 색·아이콘 톤 + theme-color 메타를 앱 테마에 동기화 (네이티브 가드 내장)
+  applyNativeTheme(normalizeTheme(value))
 }, { immediate: true })
 
 export function useTheme() {

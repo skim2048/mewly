@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { useDevices } from '../composables/useDevices.js'
 import SheetFrame from './SheetFrame.vue'
+import { tapLight } from '../native/init.js'
 
 const emit = defineEmits(['close'])
 
@@ -11,6 +12,11 @@ const { mic } = useDevices()
 
 // @claude 말하기는 목업 — 실제 음성 전송은 기기·백엔드 인터페이스 확정 후.
 const talking = ref(false)
+
+function startTalk() {
+  tapLight()
+  talking.value = true
+}
 
 const BAR_HEIGHTS = [8, 14, 22, 26, 18, 24, 12, 16, 9]
 const bars = computed(() => BAR_HEIGHTS.map((h, i) => ({
@@ -41,7 +47,7 @@ onBeforeUnmount(() => { talking.value = false })
         <button
           class="mic-btn"
           :class="{ on: talking }"
-          @pointerdown.prevent="talking = true"
+          @pointerdown.prevent="startTalk"
           @pointerup="talking = false"
           @pointercancel="talking = false"
           @pointerleave="talking = false"

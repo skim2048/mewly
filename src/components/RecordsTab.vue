@@ -218,7 +218,10 @@ const rows = computed(() => {
 })
 
 function thumbUrl(clip) {
-  return getClipUrl(clip.name, 'full', accessToken.value || '')
+  // @claude #t=0.1 미디어 프래그먼트: 브라우저가 첫 프레임 근처로 시킹해 섬네일
+  // @claude 프레임을 실제로 그리게 한다. 프래그먼트는 서버로 전송되지 않는다.
+  // @claude (Android WebView는 preload="metadata"만으로 프레임을 안 그릴 수 있음)
+  return `${getClipUrl(clip.name, 'full', accessToken.value || '')}#t=0.1`
 }
 </script>
 

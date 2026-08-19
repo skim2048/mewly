@@ -38,7 +38,7 @@ async function save() {
       <span>{{ t('srv.note') }}</span>
     </div>
     <label class="field">{{ t('srv.addr') }}
-      <input v-model="host" spellcheck="false" autocapitalize="off">
+      <input v-model="host" spellcheck="false" autocapitalize="off" inputmode="url" enterkeyhint="done">
     </label>
     <div class="actions">
       <button class="btn primary" :disabled="saving" @click="save">{{ t('common.save') }}</button>

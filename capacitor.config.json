@@ -5,5 +5,22 @@
   "server": {
     "androidScheme": "http",
     "cleartext": true
+  },
+  "android": {
+    "adjustMarginsForEdgeToEdge": "auto"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "launchFadeOutDuration": 150,
+      "backgroundColor": "#1e1e20",
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "DARK",
+      "backgroundColor": "#1e1e20"
+    }
   }
 }

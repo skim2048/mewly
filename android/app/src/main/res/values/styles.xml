@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
+    <!-- Base application theme — 앱은 다크 기본이므로 DayNight.NoActionBar 계열.
+         상태바/내비바 색은 콜드스타트(JS 실행 전) 값 — 런타임에는 StatusBar
+         플러그인이 테마 전환에 맞춰 덮어쓴다. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:statusBarColor">@color/mewlyBg</item>
+        <item name="android:navigationBarColor">@color/mewlyBg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/mewlyBg</item>
     </style>
 
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <item name="android:statusBarColor">@color/mewlyBg</item>
+        <item name="android:navigationBarColor">@color/mewlyBg</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
-
+    <!-- 스플래시: 스톡 splash.png 대신 브랜드 배경색만 — Android 12+에서는
+         시스템 스플래시(런처 아이콘 중앙 표시)가 이 배경 위에 얹힌다. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@color/mewlyBg</item>
+        <item name="windowSplashScreenBackground">@color/mewlyBg</item>
+        <item name="android:statusBarColor">@color/mewlyBg</item>
+        <item name="android:navigationBarColor">@color/mewlyBg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/mewlyBg</item>
     </style>
 </resources>

@@ -1,6 +1,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
+import { onBackButton } from '../native/backButton.js'
+import { setStatusBarHidden } from '../native/init.js'
 
 const props = defineProps({
   open: Boolean,
@@ -22,9 +24,17 @@ const playerCurrentTime = ref(0)
 const playerDuration = ref(0)
 const fullscreen = ref(false)
 
+// @claude Android 뒤로가기: 열려 있는 동안만 등록 — 풀스크린이면 풀스크린만
+// @claude 해제하고, 아니면 플레이어를 닫는다(MainView는 이 모달을 못 본다).
+let offBack = null
 watch(() => props.open, async (open) => {
   if (open) {
     document.addEventListener('keydown', onKeydown)
+    offBack ??= onBackButton(() => {
+      if (fullscreen.value) { fullscreen.value = false; return true }
+      closePlayer()
+      return true
+    })
     await nextTick()
     const vid = playerEl.value
     if (!vid) return
@@ -33,11 +43,19 @@ watch(() => props.open, async (open) => {
     return
   }
   document.removeEventListener('keydown', onKeydown)
+  offBack?.()
+  offBack = null
   resetPlayer()
 })
 
+// 영상 풀스크린 동안 상태바 숨김 (HomeTab과 동일 규칙)
+watch(fullscreen, (fs) => setStatusBarHidden(fs))
+
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown)
+  offBack?.()
+  offBack = null
+  setStatusBarHidden(false)
   resetPlayer()
 })
 
@@ -143,7 +161,7 @@ function onKeydown(e) {
             <button
               v-if="!fullscreen"
               class="corner-btn expand"
-              :title="t('live.fullscreen.enter')"
+              :aria-label="t('live.fullscreen.enter')"
               @click.stop="fullscreen = true"
             ><i class="ph ph-corners-out"></i></button>
             <button
@@ -154,7 +172,7 @@ function onKeydown(e) {
             <button
               v-if="fullscreen"
               class="corner-btn collapse"
-              :title="t('live.fullscreen.exit')"
+              :aria-label="t('live.fullscreen.exit')"
               @click.stop="fullscreen = false"
             ><i class="ph ph-corners-in"></i></button>
             <button
