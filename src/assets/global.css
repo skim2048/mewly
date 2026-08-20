@@ -280,7 +280,7 @@ input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-sele
 /* 내부 스크롤 컨테이너: 오버스크롤을 리스트 안에 가둔다(Android 스트레치가 리스트에만 걸린다) */
 .sheet-body, .modal-frame, .settings-tab, .rec-list, .day-list,
 .fs-log-list, .log-list, .notif-list, .notifset-body,
-.breed-list, .profile-body, .editor-body {
+.breed-list, .profile-body, .editor-body, .ana-body {
   overscroll-behavior: contain;
 }
 

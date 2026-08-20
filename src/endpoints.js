@@ -56,6 +56,11 @@ export const API_ENDPOINTS = {
   get clips() {
     return getApiUrl('/clips')
   },
+  // @claude recorder 이벤트 이력(FR-031) 조회 — SSE의 APP_ENDPOINTS.events(/state)와
+  // @claude 별개 자원이므로 이름을 eventHistory로 구분한다.
+  get eventHistory() {
+    return getApiUrl('/events')
+  },
   clipFile(name) {
     return getApiUrl(`/clips/${encodeURIComponent(name)}`)
   },

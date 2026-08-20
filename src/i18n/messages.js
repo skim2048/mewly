@@ -191,7 +191,19 @@ export const messages = {
   'tab.home': { en: 'Home', ko: '홈' },
   'tab.schedule': { en: 'Schedule', ko: '일정' },
   'tab.records': { en: 'Records', ko: '기록' },
+  'tab.analysis': { en: 'Analysis', ko: '분석' },
   'tab.settings': { en: 'Settings', ko: '설정' },
+
+  // @claude 분석 탭 — 이벤트 이력(/events) 클라이언트 집계 기반(2안 스케치)
+  'ana.prevDay': { en: 'Previous day', ko: '이전 날' },
+  'ana.nextDay': { en: 'Next day', ko: '다음 날' },
+  'ana.total': { en: 'Total {count}', ko: '총 {count}회' },
+  'ana.hl.top': { en: 'Most frequent: {kw}', ko: '가장 잦은 이벤트: {kw}' },
+  'ana.hl.compare': { en: 'This day {n} · same day last week {m}', ko: '이 날 {n}회 · 지난주 같은 요일 {m}회' },
+  'ana.empty': { en: 'No events detected on this day', ko: '이 날은 감지된 이벤트가 없습니다' },
+  'ana.clips': { en: 'Clips', ko: '클립' },
+  'ana.noClips': { en: 'No clips match the filter', ko: '조건에 맞는 클립이 없습니다' },
+  'ana.hourRange': { en: '{from}–{to}h', ko: '{from}–{to}시' },
 
   'login.subtitle': { en: 'Connect to the Babycat backend.', ko: 'Babycat 백엔드에 연결합니다.' },
 

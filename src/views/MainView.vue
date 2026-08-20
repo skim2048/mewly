@@ -12,6 +12,7 @@ import HomeTab from '../components/HomeTab.vue'
 
 const CalendarTab = defineAsyncComponent(() => import('../components/CalendarTab.vue'))
 const RecordsTab = defineAsyncComponent(() => import('../components/RecordsTab.vue'))
+const AnalysisTab = defineAsyncComponent(() => import('../components/AnalysisTab.vue'))
 const SettingsTab = defineAsyncComponent(() => import('../components/SettingsTab.vue'))
 const NotificationsOverlay = defineAsyncComponent(() => import('../components/NotificationsOverlay.vue'))
 const ProfileOverlay = defineAsyncComponent(() => import('../components/ProfileOverlay.vue'))
@@ -101,11 +102,13 @@ const tabs = [
   { key: 'home', icon: 'house', label: () => t('tab.home') },
   { key: 'cal', icon: 'calendar-blank', label: () => t('tab.schedule') },
   { key: 'rec', icon: 'clock-counter-clockwise', label: () => t('tab.records') },
+  { key: 'ana', icon: 'chart-bar', label: () => t('tab.analysis') },
   { key: 'set', icon: 'gear', label: () => t('tab.settings') },
 ]
 const tabTitle = computed(() => ({
   cal: t('tab.schedule'),
   rec: t('tab.records'),
+  ana: t('tab.analysis'),
   set: t('tab.settings'),
 }[activeTab.value] || ''))
 
@@ -180,6 +183,7 @@ onMounted(loadCamera)
           @go-records="goRecords"
         />
         <RecordsTab v-else-if="activeTab === 'rec'" :date-request="recordsDate" />
+        <AnalysisTab v-else-if="activeTab === 'ana'" />
         <SettingsTab
           v-else
           @open-modal="modal = $event"
@@ -422,7 +426,9 @@ onMounted(loadCamera)
   height: 64px;
   border-top: 1px solid var(--color-divider);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* 탭 수가 바뀌어도 CSS 수정이 없도록 균등 자동 분할 */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   background: var(--color-bg);
   padding-bottom: env(safe-area-inset-bottom);
 }
