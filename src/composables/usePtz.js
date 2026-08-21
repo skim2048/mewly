@@ -1,10 +1,11 @@
 import { ref } from 'vue'
+import ptz from '../../config/ptz.json'
 import { authFetch } from './useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 
 // @claude ONVIF velocity is normalized to [-1, 1]; the three levels map the
 // @claude mockup's 저속·보통·고속 onto it. The backend passes values through.
-const SPEED_FACTORS = [0.25, 0.5, 0.9]
+const SPEED_FACTORS = ptz.speedFactors
 
 const speedLevel = ref(1)
 

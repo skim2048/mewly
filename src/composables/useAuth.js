@@ -1,8 +1,10 @@
 import { computed, readonly, ref } from 'vue'
 import { API_ENDPOINTS, persistMewlyHost } from '../endpoints.js'
 
-const WARNING_LEAD_MS = 60_000
-const AUTO_REFRESH_LEAD_MS = 60_000
+import network from '../../config/network.json'
+
+const WARNING_LEAD_MS = network.session.warningLeadMs
+const AUTO_REFRESH_LEAD_MS = network.session.autoRefreshLeadMs
 const SESSION_KIND_KEY = 'session_kind'
 const SESSION_KIND_PERSISTENT = 'persistent'
 const SESSION_KIND_EPHEMERAL = 'ephemeral'

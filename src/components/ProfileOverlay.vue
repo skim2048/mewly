@@ -3,11 +3,14 @@ import { computed, ref } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { useProfile, BREEDS, BREED_OTHER, breedLabel } from '../composables/useProfile.js'
 import OverlayFrame from './OverlayFrame.vue'
+import { useToast } from '../composables/useToast.js'
+import ui from '../../config/ui.json'
 
 const emit = defineEmits(['close'])
 
 const { t, locale } = useLocale()
-const { profile, ageYears, birthLabel } = useProfile()
+const { profile, ageText, birthLabel } = useProfile()
+const { showToast } = useToast()
 
 const breedMode = ref(false)
 const breedQuery = ref('')
@@ -17,6 +20,16 @@ const breedQuery = ref('')
 // @claude 축소한다(수십~백여 KB). 새 선택은 기존 사진을 대체한다.
 const photoInput = ref(null)
 
+// ── 사진 크롭 모드 — 원형으로 남을 영역을 미리 보고 위치(드래그)·크기(슬라이더)를
+// ── 지정한다(사용자 확정). 저장 시 뷰포트 정사각을 512px로 잘라 담는다.
+const VIEW = ui.profilePhoto.cropViewPx // 크롭 뷰포트 한 변(CSS px)
+const cropMode = ref(false)
+const cropUrl = ref('')
+const cropNat = ref({ w: 0, h: 0 })
+const cropMin = ref(1)
+const cropScale = ref(1)
+const cropOffset = ref({ x: 0, y: 0 })
+
 function onPhotoPicked(event) {
   const file = event.target.files?.[0]
   event.target.value = '' // 같은 파일 재선택도 change가 발화하도록
@@ -24,17 +37,94 @@ function onPhotoPicked(event) {
   const url = URL.createObjectURL(file)
   const img = new Image()
   img.onload = () => {
-    URL.revokeObjectURL(url)
-    const MAX = 512
-    const scale = Math.min(1, MAX / Math.max(img.width, img.height))
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.round(img.width * scale)
-    canvas.height = Math.round(img.height * scale)
-    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-    profile.value = { ...profile.value, photo: canvas.toDataURL('image/jpeg', 0.85) }
+    cropNat.value = { w: img.width, h: img.height }
+    const min = VIEW / Math.min(img.width, img.height) // 원이 항상 덮이는 최소 배율
+    cropMin.value = min
+    cropScale.value = min
+    cropOffset.value = {
+      x: (VIEW - img.width * min) / 2,
+      y: (VIEW - img.height * min) / 2,
+    }
+    cropUrl.value = url
+    cropMode.value = true
   }
   img.onerror = () => URL.revokeObjectURL(url)
   img.src = url
+}
+
+function clampOffset(o, scale = cropScale.value) {
+  return {
+    x: Math.min(0, Math.max(VIEW - cropNat.value.w * scale, o.x)),
+    y: Math.min(0, Math.max(VIEW - cropNat.value.h * scale, o.y)),
+  }
+}
+
+// 줌은 뷰포트 중심을 고정한 채 배율만 바꾼다
+function onCropZoom(e) {
+  const next = Number(e.target.value)
+  const prev = cropScale.value
+  const c = VIEW / 2
+  const o = cropOffset.value
+  cropOffset.value = clampOffset({
+    x: c - ((c - o.x) / prev) * next,
+    y: c - ((c - o.y) / prev) * next,
+  }, next)
+  cropScale.value = next
+}
+
+let dragFrom = null
+function cropDown(e) {
+  e.currentTarget.setPointerCapture?.(e.pointerId)
+  dragFrom = { x: e.clientX - cropOffset.value.x, y: e.clientY - cropOffset.value.y }
+}
+function cropMove(e) {
+  if (!dragFrom) return
+  cropOffset.value = clampOffset({ x: e.clientX - dragFrom.x, y: e.clientY - dragFrom.y })
+}
+function cropUp() { dragFrom = null }
+
+function cancelCrop() {
+  cropMode.value = false
+  if (cropUrl.value) URL.revokeObjectURL(cropUrl.value)
+  cropUrl.value = ''
+}
+
+function confirmCrop() {
+  const img = new Image()
+  img.onload = () => {
+    const s = cropScale.value
+    const o = cropOffset.value
+    const OUT = ui.profilePhoto.outputPx
+    const canvas = document.createElement('canvas')
+    canvas.width = OUT
+    canvas.height = OUT
+    canvas.getContext('2d').drawImage(img, -o.x / s, -o.y / s, VIEW / s, VIEW / s, 0, 0, OUT, OUT)
+    profile.value = { ...profile.value, photo: canvas.toDataURL('image/jpeg', ui.profilePhoto.jpegQuality) }
+    cancelCrop()
+  }
+  img.src = cropUrl.value
+}
+
+const cropImgStyle = computed(() => ({
+  width: `${cropNat.value.w * cropScale.value}px`,
+  height: `${cropNat.value.h * cropScale.value}px`,
+  transform: `translate(${cropOffset.value.x}px, ${cropOffset.value.y}px)`,
+}))
+const cropZoomFill = computed(() => {
+  const span = cropMin.value * 2 // max = min*3
+  const pct = span ? ((cropScale.value - cropMin.value) / span) * 100 : 0
+  return `linear-gradient(to right, var(--color-accent) ${pct}%, var(--color-neutral-800) ${pct}%)`
+})
+
+// ── 생일 수정 — 숨은 date 입력으로 네이티브 날짜 선택기를 연다 ──
+const birthInput = ref(null)
+function openBirthPicker() {
+  const el = birthInput.value
+  if (!el) return
+  try { el.showPicker() } catch { el.click() }
+}
+function onBirthChange(e) {
+  if (e.target.value) profile.value = { ...profile.value, birth: e.target.value }
 }
 
 const breedList = computed(() => {
@@ -86,10 +176,46 @@ function pickBreed(value) {
     </div>
   </OverlayFrame>
 
+  <!-- 사진 크롭 모드: 원형으로 남을 영역을 드래그·슬라이더로 지정 -->
+  <OverlayFrame
+    v-else-if="cropMode"
+    :title="t('profile.cropTitle')"
+    icon="back"
+    @close="cancelCrop"
+  >
+    <template #actions>
+      <button class="head-save" @click="confirmCrop">{{ t('common.save') }}</button>
+    </template>
+    <div class="crop-body">
+      <div
+        class="crop-stage"
+        @pointerdown.prevent="cropDown"
+        @pointermove="cropMove"
+        @pointerup="cropUp"
+        @pointercancel="cropUp"
+      >
+        <img :src="cropUrl" :style="cropImgStyle" alt="" draggable="false">
+        <div class="crop-mask" aria-hidden="true"></div>
+      </div>
+      <span class="crop-hint">{{ t('profile.cropHint') }}</span>
+      <input
+        type="range"
+        class="ctl-range"
+        :min="cropMin"
+        :max="cropMin * 3"
+        :step="cropMin / 50"
+        :value="cropScale"
+        :style="{ backgroundImage: cropZoomFill }"
+        @input="onCropZoom"
+      >
+    </div>
+  </OverlayFrame>
+
   <!-- 프로필 편집 모드 -->
   <OverlayFrame v-else :title="t('profile.title')" icon="x" @close="emit('close')">
     <template #actions>
-      <button class="head-save" @click="emit('close')">{{ t('common.save') }}</button>
+      <!-- 사용자 확정: 저장은 화면을 유지하고 토스트로만 확인한다 (닫기는 X) -->
+      <button class="head-save" @click="showToast('profileSaved')">{{ t('common.save') }}</button>
     </template>
     <div class="profile-body">
       <div class="photo-block">
@@ -117,17 +243,34 @@ function pickBreed(value) {
 
       <div class="field">{{ t('profile.breed') }}
         <button class="field-row" @click="breedMode = true">
-          <span class="field-value">{{ breedLabel(profile.breed, locale) }}</span>
+          <span class="field-value">{{ profile.breed ? breedLabel(profile.breed, locale) : '—' }}</span>
           <span class="field-note">{{ t('common.change') }}</span>
         </button>
       </div>
 
       <div class="field">{{ t('profile.birth') }}
-        <span class="field-row static">
+        <button class="field-row" @click="openBirthPicker">
           <span class="field-value">{{ birthLabel }}</span>
-          <span class="field-note">{{ t('profile.age', { n: ageYears }) }}</span>
-        </span>
+          <span class="field-note">{{ ageText }}</span>
+        </button>
+        <input
+          ref="birthInput"
+          type="date"
+          class="birth-input"
+          :value="profile.birth"
+          :max="new Date().toISOString().slice(0, 10)"
+          @change="onBirthChange"
+        >
       </div>
+
+      <label class="field">{{ t('profile.notes') }}
+        <textarea
+          v-model="profile.notes"
+          class="notes-input"
+          rows="4"
+          :placeholder="t('profile.notesPh')"
+        ></textarea>
+      </label>
     </div>
   </OverlayFrame>
 </template>
@@ -340,4 +483,69 @@ function pickBreed(value) {
   font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
+.birth-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.crop-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 12px;
+}
+.crop-stage {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+  touch-action: none;
+  cursor: grab;
+}
+.crop-stage img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* 원 밖 영역을 어둡게 — 원형으로 남을 부분의 미리보기 */
+.crop-mask {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300px;
+  height: 300px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.crop-hint {
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
+}
+.crop-body .ctl-range {
+  width: 300px;
+}
+.notes-input {
+  border: none;
+  border-radius: 10px;
+  background: var(--color-neutral-900);
+  color: var(--color-text);
+  padding: 12px 14px;
+  font-size: var(--font-body);
+  font-weight: 400;
+  font-family: inherit;
+  line-height: 1.55;
+  resize: none;
+  outline: none;
+}
+.notes-input::placeholder { color: var(--color-neutral-500); }
 </style>

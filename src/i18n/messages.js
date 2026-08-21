@@ -56,9 +56,17 @@ export const messages = {
   // @claude 어휘가 드러내도록 구분한다.
   'camera.streaming.start': { en: 'Turn camera on', ko: '카메라 켜기' },
   'camera.streaming.stop': { en: 'Turn camera off', ko: '카메라 끄기' },
-  'camera.savedMsg': {
-    en: 'Profile saved and applied to the camera.',
-    ko: '프로필을 저장하고 카메라에 적용했습니다.',
+  'toast.camSaved': {
+    en: 'Profile saved. Turning the camera on.',
+    ko: '프로필을 저장했습니다. 카메라를 켭니다.',
+  },
+  'toast.camOff': {
+    en: 'Camera off. Live viewing, inference, and event recording stop.',
+    ko: '카메라를 껐습니다. 라이브 시청, 추론, 이벤트 녹화가 종료됩니다.',
+  },
+  'toast.camOn': {
+    en: 'Camera on. Live viewing, inference, and event recording start.',
+    ko: '카메라를 켰습니다. 라이브 시청, 추론, 이벤트 녹화가 시작됩니다.',
   },
   'camera.streaming.failed': { en: 'Request failed', ko: '요청 실패' },
   'camera.error.loadStatus': {
@@ -109,9 +117,18 @@ export const messages = {
 
   'prompt.label.query': { en: 'Prompt', ko: '프롬프트' },
   'prompt.label.triggers': { en: 'Keywords', ko: '키워드' },
+  'prompt.guard.note': {
+    en: 'The prompt differs from the verified wording. Careless changes can break analysis consistency.',
+    ko: '검증된 문안과 다른 프롬프트입니다. 임의 변경은 분석 일관성을 무너뜨릴 수 있습니다.',
+  },
+  'prompt.guard.restore': { en: 'Restore verified wording', ko: '검증 문안 복원' },
+  'prompt.guard.confirm': {
+    en: 'You are about to change the prompt. Tap again to apply at your own risk.',
+    ko: '프롬프트를 변경하려 합니다. 위험을 이해했다면 버튼을 한 번 더 누르세요.',
+  },
+  'prompt.guard.applyAnyway': { en: 'Apply anyway', ko: '그래도 적용' },
   'prompt.status.applied': { en: 'Settings saved.', ko: '설정을 저장했습니다.' },
   'prompt.action.start': { en: 'Start', ko: '시작' },
-  'prompt.action.stop': { en: 'Stop', ko: '정지' },
   'prompt.status.needStreaming': {
     en: 'Streaming is off, so inference cannot start. Start streaming first.',
     ko: '스트리밍이 꺼져 있어 추론을 시작할 수 없습니다. 먼저 스트리밍을 시작하세요.',
@@ -206,19 +223,22 @@ export const messages = {
   'ana.hourRange': { en: '{from}–{to}h', ko: '{from}–{to}시' },
 
   // 분석 탭 — 상태 점유율(3층 /summary 소비)
+  'ana.seg.state': { en: 'States', ko: '상태' },
+  'ana.seg.event': { en: 'Events', ko: '이벤트' },
   'ana.state.lying': { en: 'Lying', ko: '눕기' },
   'ana.state.sitting': { en: 'Sitting', ko: '앉기' },
   'ana.state.standing': { en: 'Standing', ko: '서기' },
   'ana.state.restless': { en: 'Night restlessness', ko: '야간 뒤척임' },
-  'ana.state.unlabeled': { en: 'Unlabeled', ko: '무라벨' },
-  'ana.rhythm.title': { en: 'Daily rhythm', ko: '오늘의 리듬' },
+  'ana.state.unlabeled': { en: 'No label', ko: '레이블 없음' },
+  'ana.rhythm.title': { en: "Today's activity", ko: '오늘의 활동' },
   'ana.rhythm.collecting': { en: 'Collecting baseline ({n}/{min} days)', ko: '기준선 수집 중 ({n}/{min}일)' },
   'ana.rhythm.ok': { en: 'Nothing unusual', ko: '이상 없음' },
   'ana.rhythm.dev.high': { en: '{label} above the usual range', ko: '{label} 시간이 평소보다 많습니다' },
   'ana.rhythm.dev.low': { en: '{label} below the usual range', ko: '{label} 시간이 평소보다 적습니다' },
   'ana.rhythm.baseline': { en: 'usual {m}%', ko: '평소 {m}%' },
   'ana.rhythm.noData': { en: 'No inference data for this day', ko: '이 날의 추론 데이터가 없습니다' },
-  'ana.timeline.title': { en: 'State distribution', ko: '상태 분포' },
+  'ana.acto.title': { en: 'Weekly activity', ko: '주간 활동' },
+  'ana.acto.sub': { en: 'shade = activity (not lying)', ko: '농도 = 활동(비누움)' },
 
   // 설정 — 분석(어휘·프리셋 주입)
   'set.rowAnalysis': { en: 'Analysis', ko: '분석' },
@@ -242,7 +262,18 @@ export const messages = {
   'notif.kind.abn': { en: 'Behavior', ko: '이상행동' },
   'notif.kind.sched': { en: 'Schedule alarm', ko: '일정 알람' },
 
+  'profile.empty': { en: 'Set up the profile', ko: '프로필을 등록하세요' },
   'profile.title': { en: 'Dog profile', ko: '반려견 프로필' },
+  'profile.notes': { en: 'Traits', ko: '특징' },
+  'profile.notesPh': {
+    en: 'Personality, habits, anything worth noting…',
+    ko: '성격, 습관, 주의할 점 등을 기록하세요.',
+  },
+  'profile.cropTitle': { en: 'Adjust photo', ko: '사진 조정' },
+  'profile.cropHint': {
+    en: 'Drag to position, slide to zoom.',
+    ko: '끌어서 위치를, 슬라이더로 크기를 조정하세요.',
+  },
   'profile.photoHint': {
     en: 'Change photo — camera · album · remove · 10MB · JPG/PNG/WebP',
     ko: '사진 변경 — 카메라 · 앨범 · 삭제 · 10MB · JPG/PNG/WebP',
@@ -254,7 +285,9 @@ export const messages = {
   },
   'profile.breed': { en: 'Breed', ko: '견종' },
   'profile.birth': { en: 'Birthday', ko: '생일' },
-  'profile.age': { en: '{n} yrs', ko: '{n}살' },
+  'profile.ageYm': { en: '{y} yr {m} mo', ko: '{y}년 {m}개월' },
+  'profile.ageY': { en: '{y} yr', ko: '{y}년' },
+  'profile.ageM': { en: '{m} mo', ko: '{m}개월' },
   'breed.pick': { en: 'Choose breed', ko: '견종 선택' },
   'breed.searchPh': { en: 'Search breeds', ko: '견종 검색' },
   'breed.hint': {
@@ -377,6 +410,7 @@ export const messages = {
     en: 'Unavailable right now — another control is in progress.',
     ko: '지금은 사용할 수 없습니다. 다른 제어가 진행 중입니다.',
   },
+  'toast.profileSaved': { en: 'Saved.', ko: '저장되었습니다.' },
   'toast.loadFail': {
     en: 'Failed to load analysis data. Check the backend.',
     ko: '분석 데이터를 불러오지 못했습니다. 백엔드 상태를 확인하세요.',

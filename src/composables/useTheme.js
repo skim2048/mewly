@@ -1,8 +1,9 @@
 import { ref, watch } from 'vue'
 import { applyNativeTheme } from '../native/init.js'
+import ui from '../../config/ui.json'
 
 const THEME_KEY = 'theme'
-const DEFAULT_THEME = 'dark'
+const DEFAULT_THEME = ui.defaultTheme
 const SUPPORTED_THEMES = new Set(['light', 'dark'])
 
 function hasWindow() {

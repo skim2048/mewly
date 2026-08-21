@@ -1,16 +1,16 @@
 import { persistentRef } from './storage.js'
+import analysis from '../../config/analysis.json'
 
 // @claude 2층(구조화 출력) 클라이언트 어휘 — babycat 실험 회신(analysis-reply.md)과
 // @claude 사용자 확정에 따른 값. babycat은 이 어휘를 불투명한 태그로만 취급하며,
 // @claude 부분 문자열 매치를 수행하므로 동의어는 5자 이상의 완전형만 넣는다
 // @claude (lie→believe, rest→interesting, sit→situation 오매치 방지).
-export const STATE_LABELS = ['lying', 'sitting', 'standing']
+export const STATE_LABELS = analysis.stateLabels
 
-export const LABEL_GROUPS = {
-  lying: ['lying', 'laying', 'sleeping', 'asleep', 'resting', 'curled'],
-  sitting: ['sitting', 'seated'],
-  standing: ['standing', 'stands', 'upright'],
-}
+export const LABEL_GROUPS = analysis.labelGroups
+
+// 검증된 기본 프롬프트 — 프롬프트 패널의 보호 장치(경고·복원)의 기준 문안
+export const DAY_PROMPT = analysis.verifiedPrompt
 
 // @claude 프롬프트는 주야간 공통 단일(회신서 §7.4.1 확정: 야간 완성형은 lying
 // @claude 편향으로 기각, 자유 서술이 유일한 판별 형식). 기본 프롬프트(/prompt)를
@@ -26,7 +26,7 @@ export function buildLabelsPayload() {
 // @claude 세분의 신뢰도가 낮아(§7.4.1) 누움/비누움 2단계로 해석하며, 이 경계가
 // @claude 그 구분선이다. 초기값 09–18시(사용자 확정, 휴리스틱 탐색 대상).
 // @claude 경계 변경은 해석 방식만 바꾸므로 기준선 단절(epoch) 대상이 아니다.
-export const dayRange = persistentRef('anaDayRange', { start: 9, end: 18 })
+export const dayRange = persistentRef('anaDayRange', { ...analysis.dayRange })
 
 // start >= end이면 자정을 넘는 주간 구간으로 해석한다 (백엔드 프리셋과 같은 규약)
 export function isDayHour(hour, range = dayRange.value) {

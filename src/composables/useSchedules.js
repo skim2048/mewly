@@ -47,18 +47,17 @@ export function titleLabel(title, locale) {
   return CATEGORIES.find((c) => c.ko === title)?.en ?? title
 }
 
-// 형태 시연용 초기 데이터 (시안 고정값)
-const SEED = [
-  { id: 1, date: '2026-08-16', allDay: true, title: '병원 검진', alarm: '정각', repeat: '안 함' },
-  { id: 2, date: '2026-08-16', time: '09:00', end: '10:00', title: '심장 사상충 약', alarm: '30분 전', repeat: '매월', done: true },
-  { id: 3, date: '2026-08-16', time: '15:00', end: '16:00', title: '관절 영양제', alarm: '10분 전', repeat: '안 함' },
-  { id: 4, date: '2026-08-16', time: '21:00', end: '22:00', title: '목욕', alarm: '30분 전', repeat: '안 함' },
-  { id: 5, date: '2026-08-17', time: '09:30', end: '10:30', title: '미용 예약', alarm: '1시간 전', repeat: '안 함' },
-  { id: 6, date: '2026-08-21', time: '09:00', end: '10:00', title: '예방 접종', alarm: '1일 전', repeat: '매년' },
-  { id: 7, date: '2026-08-11', endDate: '2026-08-13', allDay: true, title: '여행 위탁', alarm: '정각', repeat: '안 함' },
-]
+const store = persistentRef('schedules', { nextId: 8, items: [] })
 
-const store = persistentRef('schedules', { nextId: SEED.length + 1, items: SEED })
+// @claude 초기 시연용 더미(id 1~7)를 저장소에서 1회 정리한다(사용자 확정).
+// @claude 사용자 생성 항목은 nextId가 8부터 시작해 id 충돌이 없다.
+try {
+  const PURGE_KEY = 'mewly.schedules.seedPurged'
+  if (!window.localStorage.getItem(PURGE_KEY)) {
+    store.value = { ...store.value, items: store.value.items.filter((i) => i.id > 7) }
+    window.localStorage.setItem(PURGE_KEY, '1')
+  }
+} catch { /* 저장 불가 환경 — 무시 */ }
 
 function occursOn(item, iso) {
   const from = item.date

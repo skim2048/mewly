@@ -14,8 +14,10 @@ import { getHlsUrl, getWhepUrl, APP_ENDPOINTS } from '../endpoints.js'
 import { authFetch } from '../composables/useFetch.js'
 import { withDayHeaders } from '../composables/dates.js'
 import { useToast } from '../composables/useToast.js'
+import { persistentRef } from '../composables/storage.js'
 import { onBackButton } from '../native/backButton.js'
 import { setStatusBarHidden } from '../native/init.js'
+import network from '../../config/network.json'
 
 const emit = defineEmits(['open-sheet', 'open-modal'])
 
@@ -27,7 +29,7 @@ const { configured, connecting, connected, ptzEnabled, setConnected, setDisconne
 const { analysisActive, busy: analysisBusy, toggle: toggleAnalysis } = useAnalysis()
 const { entries: inferLog } = useInferLog()
 const { vlmDot, vlmLabel, vlmKind } = useVlmStatus()
-const { moveAbsolute, stopMove, speedLevel } = usePtz()
+const { startMove, stopMove } = usePtz()
 const { showToast } = useToast()
 
 watch(accessToken, (currentToken) => {
@@ -126,6 +128,9 @@ function annotateDays(list) {
 }
 
 const logEntries = computed(() => annotateDays([...inferLog]))
+// 아코디언(사용자 확정): VLM 카드 전체 — 접힘=상태+최신 로그 한 줄, 펼침=전체
+const vlmOpen = persistentRef('homeVlmOpen', false)
+const latestLog = computed(() => inferLog[0] ?? null)
 
 
 // ── 기기 제어 버튼 (조명·온도·마이크는 목업, PTZ는 실동작) ──
@@ -135,65 +140,37 @@ const deviceButtons = [
   { key: 'mic', icon: 'ph ph-microphone', label: () => t('dev.mic') },
 ]
 
-// ── 전체화면 PTZ 패드 (누르는 동안 이동, 떼면 정지) ──
+// ── 전체화면 PTZ 패드 (연속 이동: 누르는 동안 이동, 떼면 정지) ──
 const PTZ_DIRS = {
   up: { pan: 0, tilt: 1 },
   down: { pan: 0, tilt: -1 },
   left: { pan: -1, tilt: 0 },
   right: { pan: 1, tilt: 0 },
 }
-// @claude 방향 제어는 0.05 단위의 절대 이동 스텝(사용자 확정). 누르고 있으면
-// @claude 이동 속도에 따른 주기로 반복하고, 목표값은 로컬에 잠시 고정하여
-// @claude SSE 폴링 지연에 흔들리지 않게 한다(PTZ 시트와 동일 규칙).
-const PTZ_STEP = 0.05
-const STEP_REPEAT_MS = { 1: 450, 2: 200 } // 보통·고속
 const padPressing = ref(null)
-const padHold = ref(null) // null | { pan, tilt }
-let padHoldTimer = null
-let padStepTimer = null
-
-function clampAxis(v) {
-  return Math.max(-1, Math.min(1, Math.round(v * 100) / 100))
+// 방향 해제 → 노브 복귀 직후 STOP 자동 눌림 연출 (PTZ 시트와 동일)
+const padStopFlash = ref(false)
+let padFlashTimer1 = null
+let padFlashTimer2 = null
+function padFlashStop() {
+  clearTimeout(padFlashTimer1)
+  clearTimeout(padFlashTimer2)
+  padFlashTimer1 = setTimeout(() => {
+    padStopFlash.value = true
+    padFlashTimer2 = setTimeout(() => { padStopFlash.value = false }, 180)
+  }, 150)
 }
-
-// @claude 고정 해제는 수렴 기준(SSE 값이 목표 허용 오차 안 도달)이며,
-// @claude 응답 유실 대비 상한 타이머만 예비로 둔다(PTZ 시트와 동일 규칙).
-const HOLD_EPS = 0.03
-const HOLD_MAX_MS = 8000
-
-function padStep(dir) {
-  const d = PTZ_DIRS[dir]
-  const pan = clampAxis((padHold.value?.pan ?? sseState.ptz_pan ?? 0) + d.pan * PTZ_STEP)
-  const tilt = clampAxis((padHold.value?.tilt ?? sseState.ptz_tilt ?? 0) + d.tilt * PTZ_STEP)
-  padHold.value = { pan, tilt }
-  clearTimeout(padHoldTimer)
-  padHoldTimer = setTimeout(() => { padHold.value = null }, HOLD_MAX_MS)
-  moveAbsolute(pan, tilt)
-}
-
-watch(() => [sseState.ptz_pan, sseState.ptz_tilt], ([pan, tilt]) => {
-  if (padHold.value == null || pan == null || tilt == null) return
-  if (Math.abs(pan - padHold.value.pan) <= HOLD_EPS
-    && Math.abs(tilt - padHold.value.tilt) <= HOLD_EPS) {
-    clearTimeout(padHoldTimer)
-    padHold.value = null
-  }
-})
 
 function padDown(dir) {
+  const d = PTZ_DIRS[dir]
   padPressing.value = dir
-  padStep(dir)
-  clearInterval(padStepTimer)
-  padStepTimer = setInterval(() => padStep(dir), STEP_REPEAT_MS[speedLevel.value] ?? 450)
+  startMove(d.pan, d.tilt)
 }
 function padUp() {
   if (padPressing.value == null) return
   padPressing.value = null
-  clearInterval(padStepTimer)
-}
-function padStop() {
-  padUp()
   stopMove()
+  padFlashStop()
 }
 // @claude 시안: 전체화면에서 패드는 항상 표시하고, 조작 가능 조건(포트 입력
 // @claude + 재생 중)이 아닐 때만 흐리게 둔다. 조건이 꺼지면 스텝 반복도 멈춘다.
@@ -221,7 +198,8 @@ function onPadPress(dir) {
 
 function onPadStopPress() {
   if (padActive.value) {
-    padStop()
+    padUp()
+    stopMove()
     return
   }
   if (patrolOn.value) showToast('patrolLock')
@@ -236,8 +214,8 @@ let retryTimer = null
 let pipelineRecoveryTimer = null
 let pc = null
 let sessionId = 0
-const STALL_TIMEOUT = 8000
-const RETRY_BACKOFF = 3000
+const STALL_TIMEOUT = network.hls.stallTimeoutMs
+const RETRY_BACKOFF = network.hls.retryBackoffMs
 
 // @claude The preference is shared with the top bar's segmented control.
 const { preferredProtocol } = useStreamProtocol()
@@ -547,7 +525,6 @@ onBeforeUnmount(() => {
   if (offFsBack) { offFsBack(); offFsBack = null }
   setStatusBarHidden(false)
   padUp()
-  clearTimeout(padHoldTimer)
   destroyAll()
 })
 </script>
@@ -626,7 +603,7 @@ onBeforeUnmount(() => {
           <div v-if="fullscreen" class="fs-br">
             <span v-if="fsPtzError" class="fs-ptz-err">{{ fsPtzError }}</span>
             <div class="fs-br-row">
-              <div class="fs-ptz">
+              <div class="fs-ptz" :class="[padPressing ? `press-${padPressing}` : '', { off: !padActive }]">
                 <button
                   v-for="dir in ['up', 'left', 'right', 'down']"
                   :key="dir"
@@ -637,9 +614,10 @@ onBeforeUnmount(() => {
                   @pointercancel="padUp"
                   @pointerleave="padUp"
                 ><i :class="`ph ph-caret-${dir}`"></i></button>
+                <span class="fs-knob" aria-hidden="true"></span>
                 <button
                   class="fs-ptz-btn center"
-                  :class="{ off: !padActive }"
+                  :class="{ off: !padActive, flash: padStopFlash }"
                   :aria-label="t('live.ptz.stop')"
                   @click="onPadStopPress"
                 >STOP</button>
@@ -692,8 +670,21 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
-    <!-- ── VLM 로그 카드 (babycat/client/android와 동일 형태) ── -->
+    <!-- ── VLM 카드 — 전체가 아코디언 (사용자 확정) ── -->
     <div class="vlm-card">
+      <!-- 접힘: 상태 + 최신 로그 한 줄 -->
+      <button v-if="!vlmOpen" class="vlm-head as-toggle" :aria-expanded="false" @click="vlmOpen = true">
+        <span class="vlm-status">
+          <span class="vlm-dot" :style="{ background: vlmDot }"></span>{{ vlmLabel }}
+        </span>
+        <span v-if="latestLog" class="log-latest">
+          <span class="log-text one-line">{{ latestLog.text }}</span>
+        </span>
+        <i class="ph ph-caret-down vlm-caret"></i>
+      </button>
+
+      <!-- 펼침: 상태 + 모델·시작 + 로그 목록 -->
+      <template v-else>
       <div class="vlm-head">
         <span class="vlm-status">
           <span class="vlm-dot" :style="{ background: vlmDot }"></span>{{ vlmLabel }}
@@ -723,32 +714,27 @@ onBeforeUnmount(() => {
               <div v-if="!sseState.vlm_models.length" class="model-none">{{ t('dashboard.model.none') }}</div>
             </div>
           </div>
+          <!-- 정지는 추론 일관성을 해쳐 제거(사용자 확정) — 전체 정지는 카메라 끄기가 담당 -->
           <button
+            v-if="!analysisActive"
             class="infer-btn"
-            :class="{ on: analysisActive, busy: analysisBusy }"
+            :class="{ busy: analysisBusy }"
             :disabled="analysisBusy"
             :aria-busy="analysisBusy"
             @click="onInferClick"
-          >{{ analysisActive ? t('prompt.action.stop') : t('prompt.action.start') }}</button>
+          >{{ t('prompt.action.start') }}</button>
+          <button class="vlm-fold" :aria-expanded="true" @click="vlmOpen = false">
+            <i class="ph ph-caret-up"></i>
+          </button>
         </div>
       </div>
 
-      <div class="log-rule"></div>
-
-      <div class="log-list">
-        <div v-if="!logEntries.length" class="log-none">{{ t('dashboard.log.waiting') }}</div>
-        <template v-for="(entry, i) in logEntries" :key="entry.id">
-          <div v-if="entry.header" class="log-day">
-            <span class="log-day-rule"></span>
-            <span>{{ entry.header }}</span>
-            <span class="log-day-rule"></span>
-          </div>
-          <div class="log-entry" :class="{ latest: i === 0 }">
-            <span class="log-time">{{ entry.time }}</span>
-            <span class="log-text">{{ entry.text }}</span>
-          </div>
-        </template>
+      <div v-if="!latestLog" class="log-none">{{ t('dashboard.log.waiting') }}</div>
+      <div v-else class="log-entry latest">
+        <span class="log-time">{{ latestLog.time }}</span>
+        <span class="log-text clamp-3">{{ latestLog.text }}</span>
       </div>
+      </template>
     </div>
 
   </div>
@@ -962,16 +948,25 @@ onBeforeUnmount(() => {
   padding: 6px 9px;
   border-radius: 6px;
 }
+/* 확대 모드 PTZ — 시트와 동일한 단일 원형 패드(큰 원 + 노브) 구성 (사용자 확정).
+   기하: 패드 124, 꺾쇠 버튼 38(인셋 4) → 꺾쇠 중심 ±39px, 노브 44. */
 .fs-ptz {
-  display: grid;
-  grid-template-columns: repeat(3, 38px);
-  grid-template-rows: repeat(3, 38px);
-  gap: 5px;
+  position: relative;
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
 }
 .fs-ptz-btn {
-  border-radius: 100px; /* 사용자 확정: 확대 모드 D-Pad는 원형 */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.45);
+  z-index: 1;
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
   color: #e9e9ed;
   font-size: 15px;
   cursor: pointer;
@@ -980,25 +975,51 @@ onBeforeUnmount(() => {
   justify-content: center;
   touch-action: none;
 }
-.fs-ptz-btn.up { grid-column: 2; grid-row: 1; }
-.fs-ptz-btn.left { grid-column: 1; grid-row: 2; }
+.fs-ptz-btn.up    { top: 4px; left: 50%; transform: translateX(-50%); }
+.fs-ptz-btn.down  { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.fs-ptz-btn.left  { left: 4px; top: 50%; transform: translateY(-50%); }
+.fs-ptz-btn.right { right: 4px; top: 50%; transform: translateY(-50%); }
+/* 노브 원판 — 꺾쇠 아래 층에서 해당 꺾쇠 중심(±39px)까지 밀린다 */
+.fs-knob {
+  z-index: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  /* PTZ 시트의 노브와 동일한 색 (사용자 확정) */
+  border: 1px solid var(--color-accent-700);
+  background: var(--color-accent-900);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+.fs-ptz.press-up    .fs-knob { transform: translate(-50%, calc(-50% - 39px)); }
+.fs-ptz.press-down  .fs-knob { transform: translate(-50%, calc(-50% + 39px)); }
+.fs-ptz.press-left  .fs-knob { transform: translate(calc(-50% - 39px), -50%); }
+.fs-ptz.press-right .fs-knob { transform: translate(calc(-50% + 39px), -50%); }
+/* STOP 라벨·히트 영역은 중앙 고정 (원판 비주얼은 fs-knob가 담당) */
 .fs-ptz-btn.center {
-  grid-column: 2;
-  grid-row: 2;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.04em;
   font-family: inherit;
 }
-.fs-ptz-btn.right { grid-column: 3; grid-row: 2; }
-.fs-ptz-btn.down { grid-column: 2; grid-row: 3; }
-/* 시안: 비활성 시 흐림 */
-.fs-ptz-btn.off {
-  background: rgba(0, 0, 0, 0.28);
-  color: rgba(233, 233, 237, 0.3);
-  cursor: default;
+.fs-ptz-btn.center.flash {
+  opacity: 0.5;
+  transform: translate(-50%, -50%) scale(0.92);
 }
-
+/* 시안: 비활성 시 흐림 */
+.fs-ptz.off { background: rgba(0, 0, 0, 0.28); }
+.fs-ptz.off .fs-ptz-btn { color: rgba(233, 233, 237, 0.3); cursor: default; }
+.fs-ptz.off .fs-knob { opacity: 0.45; }
 .fs-log {
   /* 회전 캔버스 폭에 비례(시안 812px 기준 280px ≈ 34%) — 작은 화면에서
      영상 폭을 과점하지 않도록 절대폭 대신 비율과 상하한을 쓴다 */
@@ -1121,8 +1142,7 @@ onBeforeUnmount(() => {
 
 /* — VLM 로그 카드 (babycat/client/android LiveMobile과 동일 사양) — */
 .vlm-card {
-  flex: 1;
-  min-height: 150px;
+  flex: none; /* 내용 높이만 차지 (사용자 확정) */
   border-radius: 16px;
   padding: 14px;
   margin: 12px 16px;
@@ -1142,7 +1162,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: var(--font-body);
+  font-size: var(--font-label); /* 상태 텍스트 축소 (사용자 확정) */
   min-width: 0;
 }
 .vlm-dot {
@@ -1245,6 +1265,56 @@ onBeforeUnmount(() => {
   flex: none;
   height: 1px;
   background: var(--color-divider);
+}
+.vlm-head.as-toggle {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  gap: 10px;
+}
+.vlm-caret {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-neutral-500);
+}
+.vlm-fold {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 100px;
+  background: none;
+  color: var(--color-neutral-500);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.log-latest {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
+  font-variant-numeric: tabular-nums;
+}
+.log-text.clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.log-text.one-line {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .log-list {
   flex: 1;

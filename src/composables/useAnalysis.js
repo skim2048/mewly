@@ -65,5 +65,5 @@ export function useAnalysis() {
     rejected.value = false
   }
 
-  return { analysisActive, busy, rejected, toggle, clearRejected }
+  return { analysisActive, busy, rejected, toggle, start, clearRejected }
 }

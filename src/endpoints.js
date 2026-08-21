@@ -3,7 +3,10 @@
 // control, SSE/MJPEG relays, and the HLS/WHEP streaming relays.
 // Only WebRTC media (UDP 8189) bypasses it.
 
+import network from '../config/network.json'
+
 const MEWLY_HOST_STORAGE_KEY = 'mewly_host'
+const PORT = network.backendPort
 
 function hasWindow() {
   return typeof window !== 'undefined'
@@ -34,7 +37,7 @@ function getMewlyHost() {
 }
 
 function getApiUrl(path) {
-  return `http://${getMewlyHost()}:8000${path}`
+  return `http://${getMewlyHost()}:${PORT}${path}`
 }
 
 export const API_ENDPOINTS = {
@@ -140,11 +143,11 @@ export function getStreamHost() {
 // @claude HLS and WHEP go through the router relay (single entry). Only the
 // @claude WebRTC media itself flows directly from the streamer (UDP 8189).
 export function getHlsUrl(host = getStreamHost()) {
-  return `http://${host}:8000/live/hls/index.m3u8`
+  return `http://${host}:${PORT}/live/hls/index.m3u8`
 }
 
 export function getWhepUrl(host = getStreamHost()) {
-  return `http://${host}:8000/live/whep`
+  return `http://${host}:${PORT}/live/whep`
 }
 
 export function getEventsUrl(token) {

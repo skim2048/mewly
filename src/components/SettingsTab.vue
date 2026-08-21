@@ -8,7 +8,14 @@ const emit = defineEmits(['open-modal', 'open-overlay', 'logout'])
 
 const { t, locale, toggleLocale } = useLocale()
 const { theme, setTheme } = useTheme()
-const { profile, ageYears } = useProfile()
+const { profile, ageText } = useProfile()
+
+// 빈 프로필이면 등록 안내를, 아니면 있는 항목만 「 · 」로 잇는다
+const profileSub = computed(() => {
+  const parts = [profile.value.breed && breedLabel(profile.value.breed, locale.value), ageText.value]
+    .filter(Boolean)
+  return parts.length ? parts.join(' · ') : t('profile.empty')
+})
 
 const langValue = computed(() => (locale.value === 'ko' ? '한국어' : 'English'))
 const themeValue = computed(() =>
@@ -43,8 +50,8 @@ const group2 = computed(() => [
         <i v-else class="ph ph-dog"></i>
       </span>
       <span class="profile-copy">
-        <span class="profile-name">{{ profile.name }}</span>
-        <span class="profile-sub">{{ breedLabel(profile.breed, locale) }} · {{ t('profile.age', { n: ageYears }) }}</span>
+        <span class="profile-name">{{ profile.name || t('profile.title') }}</span>
+        <span class="profile-sub">{{ profileSub }}</span>
       </span>
       <i class="ph ph-caret-right caret"></i>
     </button>

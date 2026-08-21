@@ -1,4 +1,5 @@
 import { authFetch } from './useFetch.js'
+import analysis from '../../config/analysis.json'
 import { API_ENDPOINTS } from '../endpoints.js'
 
 // @claude 분석 탭의 데이터 이음새(2안 방침). 현재 구현은 recorder 이벤트
@@ -7,7 +8,7 @@ import { API_ENDPOINTS } from '../endpoints.js'
 // @claude 한계(계획서에 명시): 트리거 매치 이벤트만 반영되고, 클립 자동
 // @claude 정리(FR-033) 시 대응 이벤트도 삭제되어 과거 요약이 함께 소실된다.
 
-const DAY_LIMIT = 1000 // 하루 조회 상한 — 초과분은 절단되므로 total과 대조 가능
+const DAY_LIMIT = analysis.eventsDayLimit // 하루 조회 상한 — 초과분은 절단되므로 total과 대조 가능
 
 // 지정 일자의 이벤트를 키워드별 24시간 빈도로 집계한다.
 // 반환: { total, cards: [{ keyword, total, bins[24], clipsByHour[24][] }] }

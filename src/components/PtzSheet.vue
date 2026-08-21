@@ -6,6 +6,7 @@ import { usePtz } from '../composables/usePtz.js'
 import { useToast } from '../composables/useToast.js'
 import { useLocale } from '../composables/useLocale.js'
 import { tapLight } from '../native/init.js'
+import ptzCfg from '../../config/ptz.json'
 
 const props = defineProps({
   active: { type: Boolean, default: false }, // 재생 중 여부 — 낙관적 활성 정책의 사전 비활성 판단
@@ -13,11 +14,23 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const { state } = useSSE()
-const { speedLevel, setSpeedLevel, stopMove, moveAbsolute, savePreset, gotoPreset, setPatrol } = usePtz()
+const { speedLevel, setSpeedLevel, startMove, stopMove, moveAbsolute, savePreset, gotoPreset, setPatrol } = usePtz()
 const { showToast } = useToast()
 const { t, locale } = useLocale()
 
 const ptzPressing = ref(null)
+// 방향 해제 → 노브 중앙 복귀(150ms) 직후 STOP이 눌렸다 떼지는 연출
+const stopFlash = ref(false)
+let flashTimer1 = null
+let flashTimer2 = null
+function flashStop() {
+  clearTimeout(flashTimer1)
+  clearTimeout(flashTimer2)
+  flashTimer1 = setTimeout(() => {
+    stopFlash.value = true
+    flashTimer2 = setTimeout(() => { stopFlash.value = false }, 180)
+  }, 150)
+}
 const ptzSaveMode = ref(false)
 const ptzMessage = ref('') // '' | 'saveFailed' | 'gotoEmpty'
 const patrolOpen = ref(false)
@@ -40,25 +53,9 @@ const ptzDirs = [
   { id: 'right', pan:  1, tilt:  0 },
 ]
 
-// @claude 방향 제어는 0.05 단위의 절대 이동 스텝이다(사용자 확정). 누르고
-// @claude 있으면 이동 속도에 따른 주기로 스텝을 반복한다. 목표값 누적은
-// @claude 게이지와 같은 hold 값을 기준으로 하여 SSE 지연에 흔들리지 않는다.
-const PTZ_STEP = 0.05
-const STEP_REPEAT_MS = { 1: 450, 2: 200 } // 보통·고속
-let stepTimer = null
-
-function clampAxis(v) {
-  return Math.max(-1, Math.min(1, Math.round(v * 100) / 100))
-}
-
-function stepOnce(dir) {
-  const pan = clampAxis((effPan.value ?? 0) + dir.pan * PTZ_STEP)
-  const tilt = clampAxis((effTilt.value ?? 0) + dir.tilt * PTZ_STEP)
-  holdAxis('pan', pan)
-  holdAxis('tilt', tilt)
-  moveAbsolute(pan, tilt)
-}
-
+// @claude 방향 제어는 연속 이동(누르는 동안 ContinuousMove, 떼면 Stop).
+// @claude 누르는 동안 중앙 노브(STOP)가 그 방향으로 밀리는 시각 피드백을
+// @claude 준다(사용자 확정 — 조이스틱 대체안).
 function ptzDown(dir, event) {
   // 순찰 중에는 수동 팬·틸트 조작을 차단하고, 탭 시 사유를 토스트로 안내한다
   if (patrolEnabled.value) {
@@ -69,15 +66,14 @@ function ptzDown(dir, event) {
   event.preventDefault()
   tapLight()
   ptzPressing.value = dir.id
-  stepOnce(dir)
-  clearInterval(stepTimer)
-  stepTimer = setInterval(() => stepOnce(dir), STEP_REPEAT_MS[speedLevel.value] ?? 450)
+  startMove(dir.pan, dir.tilt)
 }
 
 function ptzUp(dir) {
   if (ptzPressing.value !== dir.id) return
   ptzPressing.value = null
-  clearInterval(stepTimer)
+  stopMove()
+  flashStop()
 }
 
 function ptzStopNow() {
@@ -87,7 +83,6 @@ function ptzStopNow() {
   }
   if (!props.active) return
   ptzPressing.value = null
-  clearInterval(stepTimer)
   stopMove()
 }
 
@@ -119,7 +114,7 @@ const speedOptions = computed(() => [
 ])
 
 // — 자동 순찰 (FR-052) — 상태는 SSE ptz_patrol이 진실이다.
-const PATROL_INTERVALS = [0, 10, 30, 60, 300, 600]
+const PATROL_INTERVALS = ptzCfg.patrolIntervalsSec
 function intervalLabel(sec) {
   if (sec === 0) return t('ptz.patrolOff')
   if (sec < 60) return locale.value === 'en' ? `${sec}s` : `${sec}초`
@@ -195,8 +190,8 @@ function gaugeFill(v) {
 // @claude 목표의 허용 오차 안에 들어오면 풀린다. 시간 해제는 이동 중 표본이
 // @claude 남아 있는 시점에 노브가 낡은 값으로 튀는 원인이었다. 응답 유실에
 // @claude 대비한 상한 타이머만 예비로 둔다.
-const HOLD_EPS = 0.03
-const HOLD_MAX_MS = 8000
+const HOLD_EPS = ptzCfg.gaugeHold.epsilon
+const HOLD_MAX_MS = ptzCfg.gaugeHold.maxMs
 
 function holdAxis(axis, v) {
   if (axis === 'pan') {
@@ -239,7 +234,7 @@ function onGaugeChange(axis, e) {
 onBeforeUnmount(() => {
   clearTimeout(panHoldTimer)
   clearTimeout(tiltHoldTimer)
-  clearInterval(stepTimer)
+  stopMove() // 시트가 닫히며 눌린 채 남는 이동 방지
 })
 
 // — 프리셋 좌표 (SSE ptz_preset_positions: slot -> {pan, tilt}) —
@@ -249,7 +244,7 @@ function slotValue(slot) {
 }
 
 function onClose() {
-  clearInterval(stepTimer)
+  stopMove()
   emit('close')
 }
 
@@ -264,7 +259,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
         <div class="ptz-pad-col">
           <!-- 사용자 확정: D-Pad의 구역 타이틀 (탭 이름 PTZ와 중첩 회피) -->
           <span class="ptz-row-label pad-title">{{ t('ptz.direction') }}</span>
-          <div class="ptz-pad">
+          <div class="ptz-pad" :class="ptzPressing ? `press-${ptzPressing}` : ''">
             <button
               v-for="dir in ptzDirs"
               :key="dir.id"
@@ -276,8 +271,14 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
               @pointercancel="ptzUp(dir)"
               @pointerleave="ptzUp(dir)"
             ><i :class="`ph ph-caret-${dir.id}`"></i></button>
-            <!-- 사용자 확정: 중앙 버튼은 STOP(이동 정지) -->
-            <button class="ptz-stop" :class="{ off: patrolEnabled }" :aria-label="t('live.ptz.stop')" @click="ptzStopNow">STOP</button>
+            <!-- 노브 원판(이동)과 STOP 라벨(고정)을 분리한다 (사용자 확정) -->
+            <span class="ptz-knob" aria-hidden="true"></span>
+            <button
+              class="ptz-stop"
+              :class="{ off: patrolEnabled, flash: stopFlash }"
+              :aria-label="t('live.ptz.stop')"
+              @click="ptzStopNow"
+            >STOP</button>
           </div>
         </div>
 
@@ -537,6 +538,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   box-sizing: border-box;
 }
 .ptz-dir {
+  z-index: 1;
   position: absolute;
   width: 46px; height: 46px;
   border-radius: 50%;
@@ -555,7 +557,9 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
 .ptz-dir.left  { left: 6px; top: 50%; transform: translateY(-50%); }
 .ptz-dir.right { right: 6px; top: 50%; transform: translateY(-50%); }
 .ptz-dir.pressing { color: var(--color-accent); }
-.ptz-stop {
+/* 노브 원판 — 방향을 누르는 동안 해당 꺾쇠 아이콘 중심(±49px)까지 밀린다 */
+.ptz-knob {
+  z-index: 0; /* 꺾쇠·STOP 아래 — 노브가 아이콘을 가리지 않는다 (사용자 확정) */
   position: absolute;
   top: 50%;
   left: 50%;
@@ -564,6 +568,24 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   border-radius: 50%;
   border: 1px solid var(--color-accent-700);
   background: var(--color-accent-900);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+.ptz-pad.press-up    .ptz-knob { transform: translate(-50%, calc(-50% - 49px)); }
+.ptz-pad.press-down  .ptz-knob { transform: translate(-50%, calc(-50% + 49px)); }
+.ptz-pad.press-left  .ptz-knob { transform: translate(calc(-50% - 49px), -50%); }
+.ptz-pad.press-right .ptz-knob { transform: translate(calc(-50% + 49px), -50%); }
+/* STOP 라벨·히트 영역은 중앙 고정 */
+.ptz-stop {
+  z-index: 1;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
   color: var(--color-accent);
   font-size: var(--font-label);
   font-weight: 700;
@@ -574,6 +596,8 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   align-items: center;
   justify-content: center;
 }
+/* 노브 복귀 직후의 자동 눌림 연출 */
+.ptz-stop.flash { opacity: 0.5; transform: translate(-50%, -50%) scale(0.92); }
 
 .ptz-mid {
   flex: 1;

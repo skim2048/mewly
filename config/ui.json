@@ -1,0 +1,10 @@
+{
+  "defaultTheme": "dark",
+  "defaultLocale": "en",
+  "toastAutoHideMs": 4000,
+  "profilePhoto": {
+    "outputPx": 512,
+    "jpegQuality": 0.85,
+    "cropViewPx": 300
+  }
+}

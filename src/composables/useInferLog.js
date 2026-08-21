@@ -8,7 +8,7 @@ import { toIsoDate } from './dates.js'
 // @claude infer_raw stream, newest first, capped for display. Deleting an
 // @claude entry only removes it from this in-memory list — there is no
 // @claude server-side counterpart to delete.
-const MAX_LOG = 100
+const MAX_LOG = 20
 
 const entries = reactive([])
 let started = false

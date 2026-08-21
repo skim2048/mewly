@@ -194,7 +194,7 @@ onMounted(loadCamera)
     <!-- ── 기기 제어 실패 토스트 (시안: 하단 80px 고정) ── -->
     <Transition name="toast">
       <div v-if="toast" class="device-toast">
-        <i class="ph ph-warning-circle toast-icon"></i>
+        <i :class="['profileSaved', 'camSaved', 'camOn', 'camOff'].includes(toast) ? 'ph ph-check-circle' : 'ph ph-warning-circle'" class="toast-icon"></i>
         <span class="toast-text">{{ t(`toast.${toast}`) }}</span>
         <button class="toast-x" @click="hideToast"><i class="ph ph-x"></i></button>
       </div>
@@ -287,7 +287,7 @@ onMounted(loadCamera)
   transform: translateX(-50%);
   width: calc(100% - 32px);
   max-width: 420px;
-  z-index: 170;
+  z-index: 240; /* 모달(200) 위 — 카메라 패널의 통지가 토스트로 온다 */
   display: flex;
   align-items: flex-start;
   gap: 9px;

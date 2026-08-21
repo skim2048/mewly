@@ -1,8 +1,9 @@
 import { computed, ref, watch } from 'vue'
+import ui from '../../config/ui.json'
 import { messages } from '../i18n/messages.js'
 
 const LOCALE_KEY = 'locale'
-const DEFAULT_LOCALE = 'en'
+const DEFAULT_LOCALE = ui.defaultLocale
 const SUPPORTED_LOCALES = new Set(['en', 'ko'])
 
 function hasWindow() {

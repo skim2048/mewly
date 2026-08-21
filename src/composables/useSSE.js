@@ -1,4 +1,5 @@
 import { computed, effectScope, reactive, readonly, watch } from 'vue'
+import network from '../../config/network.json'
 import { useAuth } from './useAuth.js'
 import { authFetch } from './useFetch.js'
 import { hasMessage, t } from './useLocale.js'
@@ -139,7 +140,7 @@ function scheduleReconnect(token) {
 // @claude EventSource cannot expose the 401 a replaced session receives on
 // @claude reconnect (FR-047), so a broken stream triggers a throttled probe
 // @claude through authFetch, whose 401 handling classifies and notifies.
-const PROBE_MIN_INTERVAL_MS = 5000
+const PROBE_MIN_INTERVAL_MS = network.sseProbeMinIntervalMs
 let lastProbeAt = 0
 function probeSession() {
   const now = Date.now()

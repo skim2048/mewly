@@ -1,4 +1,6 @@
 import { authFetch } from './useFetch.js'
+import analysis from '../../config/analysis.json'
+import network from '../../config/network.json'
 import { API_ENDPOINTS } from '../endpoints.js'
 import { STATE_LABELS, isDayHour, readPresetEpochDate } from './analysisConfig.js'
 import { toIsoDate, parseIsoDate } from './dates.js'
@@ -13,8 +15,8 @@ export const METRIC_KEYS = ['lying', 'sitting', 'standing', 'restless']
 
 // @claude 백엔드의 간헐 500(스레드 배정 복권)을 흡수하기 위해 짧게 재시도한다.
 // @claude 결함 수정 후에도 일시 오류 흡수 용도로 무해하다.
-const RETRIES = 2
-const RETRY_DELAY_MS = 250
+const RETRIES = network.summaryRetry.attempts
+const RETRY_DELAY_MS = network.summaryRetry.delayMs
 
 async function fetchSummary(dateFrom, dateTo, bucket) {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, bucket })
@@ -61,6 +63,12 @@ function segmentCounts(hours, wantDay) {
 }
 
 // 주간 3종 점유율 + 야간 뒤척임(비누움 비율). 분모 없는 지표는 null로 둔다.
+// 액토그램용 활동도: 시간대의 비누움 비율(활동). 라벨 표본이 없으면 null.
+function hourActivity(h) {
+  const denom = STATE_LABELS.reduce((a, l) => a + h.counts[l], 0)
+  return denom ? (h.counts.sitting + h.counts.standing) / denom : null
+}
+
 function computeMetrics(hours) {
   const day = segmentCounts(hours, true)
   const night = segmentCounts(hours, false)
@@ -90,6 +98,7 @@ export async function fetchDayStates(dateIso) {
     unlabeled: total ? Math.max(0, (total - labeled) / total) : 0,
     hours,
     metrics: computeMetrics(hours),
+    activity: hours.map(hourActivity), // 액토그램의 오늘 행
   }
 }
 
@@ -97,14 +106,14 @@ export async function fetchDayStates(dateIso) {
 // @claude 야간 지표가 필요하므로 bucket=day가 아니라 bucket=hour 범위 질의
 // @claude 1회로 받아 날짜별로 재구성한다(14일 = 336버킷). 프리셋 구성 변경일
 // @claude (presetEpoch) 이전의 날은 비교 가능성이 없어 제외한다(회신서 §7.6).
-export async function fetchBaseline(dateIso, days = 14) {
+export async function fetchBaseline(dateIso, days = analysis.baseline.days) {
   const base = parseIsoDate(dateIso)
   let from = toIsoDate(base, -days)
   const to = toIsoDate(base, -1)
   const epoch = readPresetEpochDate()
   if (epoch && epoch > from) from = epoch
 
-  const empty = { days: 0, n: {}, mean: {}, sd: {} }
+  const empty = { days: 0, n: {}, mean: {}, sd: {}, history: [] }
   if (from > to) return empty
   let buckets
   try {
@@ -123,6 +132,11 @@ export async function fetchBaseline(dateIso, days = 14) {
     accumulate(byDay.get(day), b)
   }
 
+  // 액토그램: 일별 활동 행 (최신일 우선)
+  const history = [...byDay.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, hours]) => ({ date, activity: hours.map(hourActivity) }))
+
   const perDay = [...byDay.values()].map(computeMetrics)
   const n = {}
   const mean = {}
@@ -136,19 +150,19 @@ export async function fetchBaseline(dateIso, days = 14) {
       ? Math.sqrt(xs.reduce((a, x) => a + (x - m) ** 2, 0) / xs.length)
       : 0
   }
-  return { days: Math.max(...Object.values(n), 0), n, mean, sd }
+  return { days: Math.max(...Object.values(n), 0), n, mean, sd, history }
 }
 
 // ── 리듬 판정 (v1 사양 — 시각화 검토 후 조정 예정) ──
 // 지표별 표본 7일 미만이면 판정하지 않고, 편차 문턱은 max(10%p, 2σ)로 한다.
-export const BASELINE_MIN_DAYS = 7
+export const BASELINE_MIN_DAYS = analysis.baseline.minDays
 
 export function judgeRhythm(metrics, baseline) {
   if (!baseline || baseline.days < BASELINE_MIN_DAYS) return null
   const deviations = []
   for (const key of METRIC_KEYS) {
     if (metrics[key] === null || (baseline.n[key] ?? 0) < BASELINE_MIN_DAYS) continue
-    const threshold = Math.max(0.10, 2 * baseline.sd[key])
+    const threshold = Math.max(analysis.baseline.thresholdShare, analysis.baseline.sigmaMultiplier * baseline.sd[key])
     const delta = metrics[key] - baseline.mean[key]
     if (Math.abs(delta) > threshold) {
       deviations.push({ label: key, direction: delta > 0 ? 'high' : 'low' })

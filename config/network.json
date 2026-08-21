@@ -1,0 +1,17 @@
+{
+  "backendPort": 8000,
+  "cameraToggleWaitMs": 8000,
+  "hls": {
+    "stallTimeoutMs": 8000,
+    "retryBackoffMs": 3000
+  },
+  "sseProbeMinIntervalMs": 5000,
+  "summaryRetry": {
+    "attempts": 2,
+    "delayMs": 250
+  },
+  "session": {
+    "warningLeadMs": 60000,
+    "autoRefreshLeadMs": 60000
+  }
+}

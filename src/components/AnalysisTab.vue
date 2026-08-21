@@ -16,7 +16,9 @@ import {
   METRIC_KEYS,
 } from '../composables/useInferenceSummary.js'
 import { STATE_LABELS, isDayHour, dayRange } from '../composables/analysisConfig.js'
+import { persistentRef } from '../composables/storage.js'
 import ClipPlayerModal from './ClipPlayerModal.vue'
+import analysisCfg from '../../config/analysis.json'
 
 // @claude 분석 탭 — 기록+분석 병합(사용자 확정): 하루 요약(키워드별 24시간
 // @claude 히트맵) 위, 그날의 클립 목록 아래. 히트맵 셀·키워드 탭으로 목록을
@@ -28,10 +30,15 @@ const props = defineProps({
   dateRequest: { type: Object, default: null },
 })
 
-const { t } = useLocale()
+const { t, locale } = useLocale()
 const { isAuthenticated, accessToken } = useAuth()
 const { clipVersion, deleteClips } = useClips()
 const { showToast } = useToast()
+
+// ── 화면 세그먼트(사용자 확정 2안): 상태(설정·분석의 어휘 기반) | 이벤트(추론
+// ── 프롬프트의 키워드 기반) — 두 데이터 체계를 화면 단위로 분리한다.
+const segment = persistentRef('anaSegment', 'state')
+watch(segment, () => exitSelectMode())
 
 // ── 적재 진행 표시 — 세 로더가 하나라도 진행 중이면 중앙 스피너 ──
 const pendingLoads = ref(0)
@@ -131,20 +138,28 @@ async function doLoadStates() {
   }
 }
 
-// 리듬 카드 행: 주간 3종 + 야간 뒤척임(비누움) 지표와 기준선 평균 (회신서 §7.4.1)
-const stateRows = computed(() => {
+// @claude 지표는 분모가 다른 세 묶음이다(주간 3종=주간 라벨 표본, 야간
+// @claude 뒤척임=야간 라벨 표본, 무라벨=전일 추론) — 단일 지분율로 읽히지
+// @claude 않도록 묶음별 캡션으로 구획해 표시한다(사용자 지적 반영).
+const stateGroups = computed(() => {
   const st = dayStates.value
   if (!st) return []
   const bl = baseline.value
-  const rows = METRIC_KEYS.map((key) => ({
+  const row = (key, share) => ({
     key,
     name: t(`ana.state.${key}`),
-    share: st.metrics[key],
+    share,
     mean: (bl?.n?.[key] ?? 0) > 0 ? bl.mean[key] : null,
-  }))
-  // @claude 무라벨은 부재·미추출 혼합의 참고 지표(회신서 §7.4) — 기준선 비교 없음
-  rows.push({ key: 'unlabeled', name: t('ana.state.unlabeled'), share: st.unlabeled, mean: null })
-  return rows
+  })
+  // 분모가 다른 세 묶음 — 타이틀 없이 구분선으로만 분리한다 (사용자 확정)
+  return [
+    { key: 'day', rows: ['lying', 'sitting', 'standing'].map((k) => row(k, st.metrics[k])) },
+    { key: 'night', rows: [row('restless', st.metrics.restless)] },
+    {
+      key: 'ref',
+      rows: [{ key: 'unlabeled', name: t('ana.state.unlabeled'), share: st.unlabeled, mean: null }],
+    },
+  ]
 })
 
 // 판정: null=기준선 부족, []=이상 없음, [{label, direction}]=편차
@@ -171,6 +186,34 @@ const timelineCols = computed(() => {
         ]
     const matched = segs.reduce((a, s) => a + s.pct, 0)
     return { empty: false, segs, unlabeledPct: Math.max(0, 100 - matched) }
+  })
+})
+
+// ── 액토그램: 최근 15일(대상일 포함) × 24시간 활동도 — 리듬의 규칙성과
+// ── 오늘의 이탈 지점을 여러 날 맥락으로 보인다. 농도 규칙은 빈도 히트맵과
+// ── 동일(순서 데이터 = accent 농도), 표본 없음은 별도 표기.
+function activityLevel(v) {
+  if (v === null) return 'none'
+  if (v === 0) return 'lv0'
+  return `lv${Math.max(1, Math.ceil(v * 4))}`
+}
+// 주 단위(일~토) 구성 — 대상일이 속한 주를 표시하고, 주가 바뀌면 갱신된다.
+const WEEKDAYS = { ko: ['일', '월', '화', '수', '목', '금', '토'], en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'] }
+const EMPTY_LEVELS = Array(24).fill('none')
+const actogramRows = computed(() => {
+  const st = dayStates.value
+  if (!st) return []
+  const names = WEEKDAYS[locale.value] ?? WEEKDAYS.ko
+  const history = new Map((baseline.value?.history ?? []).map((d) => [d.date, d.activity]))
+  const base = parseIsoDate(targetIso.value)
+  const sunday = new Date(base)
+  sunday.setDate(base.getDate() - base.getDay())
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = toIsoDate(sunday, i)
+    let levels = EMPTY_LEVELS
+    if (date === targetIso.value) levels = st.activity.map(activityLevel)
+    else if (history.has(date)) levels = history.get(date).map(activityLevel)
+    return { date, label: names[i], current: date === targetIso.value, levels }
   })
 })
 
@@ -211,7 +254,7 @@ async function doLoadClips() {
   const params = new URLSearchParams({
     date_from: targetIso.value,
     date_to: targetIso.value,
-    limit: '500',
+    limit: String(analysisCfg.clipsDayLimit),
   })
   try {
     const res = await authFetch(`${API_ENDPOINTS.clips}?${params}`)
@@ -256,7 +299,7 @@ const rows = computed(() => {
 
 // ── 페이지네이션(10개 단위) — 클립 수에 비례하는 <video> 섬네일의 로딩·메모리
 // ── 비용을 상한한다(사용자 확정). rows(필터 전체)는 카운트·전체 선택에 그대로 쓴다.
-const PAGE_SIZE = 10
+const PAGE_SIZE = analysisCfg.clipPageSize
 const currentPage = ref(1)
 const totalPages = computed(() => Math.max(1, Math.ceil(rows.value.length / PAGE_SIZE)))
 const pagedRows = computed(() => {
@@ -358,6 +401,17 @@ onBeforeUnmount(() => {
       </button>
     </div>
 
+    <!-- 세그먼트: 상태(어휘) | 이벤트(키워드) -->
+    <div class="ana-seg">
+      <button
+        v-for="s in ['state', 'event']"
+        :key="s"
+        class="seg-opt"
+        :class="{ on: segment === s }"
+        @click="segment = s"
+      >{{ t(`ana.seg.${s}`) }}</button>
+    </div>
+
     <!-- 적재 중: 중앙 프로그레스 서클 (내용 위 반투명 오버레이) -->
     <div v-if="loading" class="ana-loading" aria-live="polite">
       <span class="ana-spinner"></span>
@@ -365,6 +419,7 @@ onBeforeUnmount(() => {
 
     <div class="ana-body">
 
+      <template v-if="segment === 'state'">
       <!-- ── 오늘의 리듬 (상태 점유율 vs 개체 기준선) ── -->
       <div v-if="dayStates" class="ana-card">
         <div class="card-head-static">
@@ -379,8 +434,32 @@ onBeforeUnmount(() => {
           <p v-for="d in rhythm || []" :key="d.label" class="rhythm-dev">
             {{ t(`ana.rhythm.dev.${d.direction}`, { label: t(`ana.state.${d.label}`) }) }}
           </p>
+          <div class="tl-strip">
+            <span
+              v-for="(col, i) in timelineCols"
+              :key="i"
+              class="tl-col"
+              :class="{ empty: col.empty }"
+            >
+              <template v-if="!col.empty">
+                <span class="tl-seg sc-unlabeled" :style="{ height: `${col.unlabeledPct}%` }"></span>
+                <span
+                  v-for="seg in [...col.segs].reverse()"
+                  :key="seg.key"
+                  class="tl-seg"
+                  :class="`sc-${seg.key}`"
+                  :style="{ height: `${seg.pct}%` }"
+                ></span>
+              </template>
+            </span>
+          </div>
+          <div class="ruler">
+            <span v-for="h in [0, 6, 12, 18, 24]" :key="h">{{ h }}</span>
+          </div>
           <div class="state-rows">
-            <div v-for="row in stateRows" :key="row.key" class="state-row">
+            <template v-for="(grp, gi) in stateGroups" :key="grp.key">
+            <span v-if="gi > 0" class="state-sep" aria-hidden="true"></span>
+            <div v-for="row in grp.rows" :key="row.key" class="state-row">
               <span class="state-dot" :class="`sc-${row.key}`"></span>
               <span class="state-name">{{ row.name }}</span>
               <span class="state-share">{{ row.share === null ? '–' : `${Math.round(row.share * 100)}%` }}</span>
@@ -388,39 +467,41 @@ onBeforeUnmount(() => {
                 {{ t('ana.rhythm.baseline', { m: Math.round(row.mean * 100) }) }}
               </span>
             </div>
+            </template>
           </div>
         </template>
       </div>
 
-      <!-- ── 상태 분포 타임라인 (시간대별 구성비) ── -->
+      <!-- ── 주간 리듬 (액토그램: 행=요일, 열=24시간, 농도=활동) ── -->
       <div v-if="dayStates?.total" class="ana-card">
         <div class="card-head-static">
-          <span class="card-name">{{ t('ana.timeline.title') }}</span>
+          <span class="card-name">{{ t('ana.acto.title') }}</span>
+          <span class="acto-sub">{{ t('ana.acto.sub') }}</span>
         </div>
-        <div class="tl-strip">
-          <span
-            v-for="(col, i) in timelineCols"
-            :key="i"
-            class="tl-col"
-            :class="{ empty: col.empty }"
-          >
-            <template v-if="!col.empty">
-              <span class="tl-seg sc-unlabeled" :style="{ height: `${col.unlabeledPct}%` }"></span>
+        <div class="acto-grid">
+          <template v-for="row in actogramRows" :key="row.date">
+            <span class="acto-date" :class="{ current: row.current }">{{ row.label }}</span>
+            <span class="acto-strip">
               <span
-                v-for="seg in [...col.segs].reverse()"
-                :key="seg.key"
-                class="tl-seg"
-                :class="`sc-${seg.key}`"
-                :style="{ height: `${seg.pct}%` }"
+                v-for="(lv, h) in row.levels"
+                :key="h"
+                class="acto-cell"
+                :class="lv"
               ></span>
-            </template>
-          </span>
+            </span>
+          </template>
         </div>
-        <div class="ruler">
-          <span v-for="h in [0, 6, 12, 18, 24]" :key="h">{{ h }}</span>
+        <div class="acto-ruler">
+          <span></span>
+          <div class="ruler">
+            <span v-for="h in [0, 6, 12, 18, 24]" :key="h">{{ h }}</span>
+          </div>
         </div>
       </div>
 
+      </template>
+
+      <template v-else>
       <!-- ── 인사이트 카드 ── -->
       <div v-if="highlight" class="ana-highlight">
         <i class="ph ph-sparkle hl-icon"></i>
@@ -496,6 +577,7 @@ onBeforeUnmount(() => {
           <i class="ph ph-caret-right"></i>
         </button>
       </div>
+      </template>
 
     </div>
 
@@ -579,6 +661,32 @@ onBeforeUnmount(() => {
 }
 
 /* ── 본문 스크롤 영역 ── */
+.ana-seg {
+  flex: none;
+  margin: 10px 16px 0;
+  height: 36px;
+  padding: 3px;
+  border-radius: 100px;
+  background: var(--color-neutral-900);
+  display: flex;
+  gap: 3px;
+}
+.seg-opt {
+  flex: 1;
+  border-radius: 100px;
+  border: none;
+  background: none;
+  color: var(--color-neutral-400);
+  font-size: var(--font-label);
+  cursor: pointer;
+  font-family: inherit;
+}
+.seg-opt.on {
+  background: var(--color-accent-900);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 .ana-body {
   flex: 1;
   min-height: 0;
@@ -721,6 +829,12 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 7px;
 }
+.state-sep {
+  /* 카드 패딩(좌우 16px)을 상쇄해 양끝까지 — 두께는 헤어라인으로 고정 */
+  height: 0;
+  margin: 3px -16px;
+  border-top: 1px solid var(--color-divider);
+}
 .state-row {
   display: flex;
   align-items: center;
@@ -752,6 +866,50 @@ onBeforeUnmount(() => {
 .sc-standing { background: color-mix(in srgb, var(--color-accent) 22%, var(--color-surface)); }
 .sc-restless { background: color-mix(in srgb, var(--color-accent) 35%, var(--color-surface)); }
 .sc-unlabeled { background: var(--color-neutral-800); }
+
+
+/* ── 액토그램 ── */
+.acto-sub {
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
+}
+.acto-grid {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  row-gap: 3px;
+  column-gap: 8px;
+  align-items: center;
+}
+.acto-date {
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
+  text-align: center;
+}
+.acto-date.current {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.acto-strip {
+  display: flex;
+  gap: 1px;
+  height: 12px;
+}
+.acto-cell {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px;
+}
+.acto-cell.none { background: var(--color-neutral-900); }
+.acto-cell.lv0 { background: var(--color-neutral-800); }
+.acto-cell.lv1 { background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface)); }
+.acto-cell.lv2 { background: color-mix(in srgb, var(--color-accent) 38%, var(--color-surface)); }
+.acto-cell.lv3 { background: color-mix(in srgb, var(--color-accent) 62%, var(--color-surface)); }
+.acto-cell.lv4 { background: color-mix(in srgb, var(--color-accent) 88%, var(--color-surface)); }
+.acto-ruler {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  column-gap: 8px;
+}
 
 .tl-strip {
   display: flex;

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ModalFrame from './ModalFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
 import { useAnalysis } from '../composables/useAnalysis.js'
@@ -7,7 +7,7 @@ import { authFetch } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
 import { toIsoDate } from '../composables/dates.js'
-import { markPromptApplied } from '../composables/analysisConfig.js'
+import { markPromptApplied, DAY_PROMPT } from '../composables/analysisConfig.js'
 
 const emit = defineEmits(['close'])
 
@@ -39,10 +39,27 @@ watch(
 const applied = ref(false)
 const applying = ref(false)
 
-watch([prompt, triggers], () => { applied.value = false })
+// ── 프롬프트 보호 장치(사용자 확정) — §10 사고(문장 수 제약 → 무라벨 85%) 재발 방지.
+// 검증 원형과 다르면 상시 경고를 표시하고, 프롬프트 본문을 바꾸는 저장은
+// 2단계 확인을 거친다. 키워드 변경은 위험 요인이 아니므로 확인 없이 저장한다.
+const confirmArm = ref(false)
+const offVerified = computed(() => prompt.value.trim() !== DAY_PROMPT)
+const promptChanging = computed(() => prompt.value.trim() !== savedPrompt.value.trim())
+
+function restoreVerified() {
+  prompt.value = DAY_PROMPT
+}
+
+watch([prompt, triggers], () => { applied.value = false; confirmArm.value = false })
 
 async function apply() {
   if (!prompt.value.trim() || applying.value) return
+  // 프롬프트 본문 변경은 1차 탭에서 무장(확인 안내)만 하고, 2차 탭에서 적용한다
+  if (promptChanging.value && !confirmArm.value) {
+    confirmArm.value = true
+    return
+  }
+  confirmArm.value = false
   applying.value = true
   errorNote.value = ''
   try {
@@ -97,8 +114,21 @@ function revertAndClose() {
         <input v-model="triggers" />
       </label>
 
+      <!-- 검증 원형 이탈 경고 + 복원 (사용자 확정: 프롬프트 보호 장치) -->
+      <div v-if="offVerified" class="guard-box">
+        <span>{{ t('prompt.guard.note') }}</span>
+        <button class="guard-restore" @click="restoreVerified">{{ t('prompt.guard.restore') }}</button>
+      </div>
+      <span v-if="confirmArm" class="guard-confirm">{{ t('prompt.guard.confirm') }}</span>
+
       <div class="form-actions">
-        <button class="form-btn primary" :class="{ busy: applying }" :disabled="applying" :aria-busy="applying" @click="apply">{{ t('common.save') }}</button>
+        <button
+          class="form-btn primary"
+          :class="{ busy: applying, danger: confirmArm }"
+          :disabled="applying"
+          :aria-busy="applying"
+          @click="apply"
+        >{{ confirmArm ? t('prompt.guard.applyAnyway') : t('common.save') }}</button>
         <button class="form-btn" @click="revertAndClose">{{ t('common.cancel') }}</button>
       </div>
     </div>
@@ -123,5 +153,35 @@ function revertAndClose() {
   font-size: 15.8px;
   color: var(--color-accent);
   margin-top: 1px;
+}
+.guard-box {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--color-neutral-900);
+  border-left: 2px solid var(--color-danger);
+  font-size: var(--font-label);
+  line-height: 1.55;
+  color: var(--color-neutral-300);
+}
+.guard-restore {
+  align-self: flex-start;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 100px;
+  border: none;
+  background: var(--color-neutral-800);
+  color: var(--color-text);
+  font-size: var(--font-label);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.guard-confirm {
+  font-size: var(--font-label);
+  line-height: 1.5;
+  color: var(--color-danger);
 }
 </style>
