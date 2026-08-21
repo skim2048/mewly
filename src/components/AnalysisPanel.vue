@@ -33,10 +33,13 @@ const dayEndHour = computed({
 })
 
 const applied = ref(false)
+const applying = ref(false)
 const errorNote = ref('')
 watch(dayRange, () => { errorNote.value = '' }, { deep: true })
 
 async function apply() {
+  if (applying.value) return
+  applying.value = true
   errorNote.value = ''
   const payload = buildLabelsPayload()
   try {
@@ -55,6 +58,8 @@ async function apply() {
     }
   } catch {
     errorNote.value = t('ana.panel.error')
+  } finally {
+    applying.value = false
   }
 }
 </script>
@@ -89,7 +94,7 @@ async function apply() {
 
       <div class="form-actions">
         <button class="form-btn" @click="emit('close')">{{ t('common.cancel') }}</button>
-        <button class="form-btn primary" @click="apply">{{ t('common.save') }}</button>
+        <button class="form-btn primary" :class="{ busy: applying }" :disabled="applying" :aria-busy="applying" @click="apply">{{ t('common.save') }}</button>
       </div>
     </div>
   </ModalFrame>

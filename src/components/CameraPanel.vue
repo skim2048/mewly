@@ -26,6 +26,7 @@ const local = reactive({
 const passwordLoaded = ref(false)
 // 저장 후 안내 박스 — 저장이 곧 적용이므로(자동 연계) 단일 문구만 쓴다
 const saved = ref(false)
+const saveBusy = ref(false)
 
 // @claude dirty 판정용 원본 스냅샷 — 변경 없는 저장에 카메라 재시작(영상 순단
 // @claude + 분석·녹화 중단)을 걸지 않기 위한 기준값.
@@ -66,6 +67,16 @@ function onPasswordFocus() {
 }
 
 async function handleSave() {
+  if (saveBusy.value) return
+  saveBusy.value = true
+  try {
+    await doSave()
+  } finally {
+    saveBusy.value = false
+  }
+}
+
+async function doSave() {
   // @claude 저장=적용 자동 연계(사용자 확정): 저장은 카메라가 켜진 상태로
   // @claude 귀결시킨다 — 꺼져 있으면 켜고, 켜진 채 프로필이 바뀌었으면 끄고
   // @claude 다시 켠다. 변경 없는 저장은 재시작하지 않는다(무의미한 순단 방지).
@@ -156,8 +167,20 @@ function toggleStreaming() {
     </label>
 
     <div class="form-actions">
-      <button class="form-btn primary" @click="handleSave">{{ t('camera.action.save') }}</button>
-      <button class="form-btn" :disabled="streamingBusy" @click="toggleStreaming">
+      <button
+        class="form-btn primary"
+        :class="{ busy: saveBusy }"
+        :disabled="saveBusy"
+        :aria-busy="saveBusy"
+        @click="handleSave"
+      >{{ t('camera.action.save') }}</button>
+      <button
+        class="form-btn"
+        :class="{ busy: streamingBusy }"
+        :disabled="streamingBusy || saveBusy"
+        :aria-busy="streamingBusy"
+        @click="toggleStreaming"
+      >
         {{ state.streaming_active ? t('camera.streaming.stop') : t('camera.streaming.start') }}
       </button>
     </div>

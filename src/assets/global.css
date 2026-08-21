@@ -397,6 +397,28 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
 .chip-btn.danger { color: var(--color-danger); }
 .chip-btn:disabled { opacity: 0.45; cursor: default; }
 
+/* ── Busy — 서버 응답 대기 공용 어법: 진행 중 버튼에 소형 스피너 + 입력 차단.
+   결과가 화면·실물로 즉시 드러나지 않는 요청은 반드시 이 표시를 갖는다(전수
+   조사 확정). 사용처: :class="{ busy }" + :disabled + aria-busy. ── */
+.busy {
+  pointer-events: none;
+  opacity: 0.75;
+}
+.busy::before {
+  content: '';
+  flex: none;
+  width: 1em;
+  height: 1em;
+  margin-right: 7px;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: -0.15em;
+  animation: busyspin 0.7s linear infinite;
+}
+@keyframes busyspin { to { transform: rotate(360deg); } }
+
 /* ── Hover styles — 진짜 호버 장치에서만. 터치에서는 탭 후 스티키 호버가 남으므로 가드 ── */
 @media (hover: hover) {
   ::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-700); }

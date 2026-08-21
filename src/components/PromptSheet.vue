@@ -6,6 +6,8 @@ import { useAnalysis } from '../composables/useAnalysis.js'
 import { authFetch } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
+import { toIsoDate } from '../composables/dates.js'
+import { markPromptApplied } from '../composables/analysisConfig.js'
 
 const emit = defineEmits(['close'])
 
@@ -35,11 +37,13 @@ watch(
 // @claude 시안: 저장은 모달을 유지한 채 「저장했습니다 · 추론 미시작」 안내를
 // @claude 띄우고, 취소·닫기·배경 클릭은 마지막 저장 상태로 되돌린 뒤 닫는다.
 const applied = ref(false)
+const applying = ref(false)
 
 watch([prompt, triggers], () => { applied.value = false })
 
 async function apply() {
-  if (!prompt.value.trim()) return
+  if (!prompt.value.trim() || applying.value) return
+  applying.value = true
   errorNote.value = ''
   try {
     const res = await authFetch(APP_ENDPOINTS.prompt, {
@@ -53,12 +57,15 @@ async function apply() {
       savedTriggers.value = triggers.value
       clearRejected()
       applied.value = true
+      // 프롬프트 변경은 라벨 분포를 바꾸므로 기준선 단절을 기록한다 (회신서 §10)
+      markPromptApplied(prompt.value.trim(), toIsoDate())
     } else {
       errorNote.value = t('prompt.status.error', { message: data.error || t('prompt.status.unknown') })
     }
   } catch {
     errorNote.value = t('prompt.status.failed')
   }
+  applying.value = false
 }
 
 function revertAndClose() {
@@ -91,7 +98,7 @@ function revertAndClose() {
       </label>
 
       <div class="form-actions">
-        <button class="form-btn primary" @click="apply">{{ t('common.save') }}</button>
+        <button class="form-btn primary" :class="{ busy: applying }" :disabled="applying" :aria-busy="applying" @click="apply">{{ t('common.save') }}</button>
         <button class="form-btn" @click="revertAndClose">{{ t('common.cancel') }}</button>
       </div>
     </div>

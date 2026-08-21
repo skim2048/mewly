@@ -254,6 +254,18 @@ const rows = computed(() => {
     })
 })
 
+// ── 페이지네이션(10개 단위) — 클립 수에 비례하는 <video> 섬네일의 로딩·메모리
+// ── 비용을 상한한다(사용자 확정). rows(필터 전체)는 카운트·전체 선택에 그대로 쓴다.
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(rows.value.length / PAGE_SIZE)))
+const pagedRows = computed(() => {
+  const page = Math.min(currentPage.value, totalPages.value)
+  return rows.value.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+})
+watch([targetIso, drill], () => { currentPage.value = 1 })
+watch(totalPages, (n) => { if (currentPage.value > n) currentPage.value = n })
+
 function thumbUrl(clip) {
   // #t=0.1: Android WebView가 실제 첫 프레임을 그리도록 시킹 (기록 탭과 동일)
   return `${getClipUrl(clip.name, 'full', accessToken.value || '')}#t=0.1`
@@ -286,9 +298,15 @@ const allSelected = computed(() =>
 function toggleSelectAll() {
   selected.value = allSelected.value ? new Set() : new Set(rows.value.map((r) => r.name))
 }
+const deleting = ref(false)
 async function deleteSelected() {
-  if (!selected.value.size) return
-  await deleteClips([...selected.value])
+  if (!selected.value.size || deleting.value) return
+  deleting.value = true
+  try {
+    await deleteClips([...selected.value])
+  } finally {
+    deleting.value = false
+  }
   exitSelectMode()
 }
 
@@ -455,7 +473,7 @@ onBeforeUnmount(() => {
         </template>
       </div>
       <span v-if="!rows.length" class="ana-empty">{{ t('ana.noClips') }}</span>
-      <div v-for="r in rows" :key="r.name" class="clip-row" @click="onRowClick(r)">
+      <div v-for="r in pagedRows" :key="r.name" class="clip-row" @click="onRowClick(r)">
         <span v-if="selectMode" class="clip-check" :class="{ on: selected.has(r.name) }">
           <i v-if="selected.has(r.name)" class="ph-bold ph-check"></i>
         </span>
@@ -469,12 +487,28 @@ onBeforeUnmount(() => {
         </span>
       </div>
 
+      <div v-if="totalPages > 1" class="clip-pager">
+        <button class="pager-btn" :disabled="currentPage <= 1" @click="currentPage--">
+          <i class="ph ph-caret-left"></i>
+        </button>
+        <span class="pager-count">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="pager-btn" :disabled="currentPage >= totalPages" @click="currentPage++">
+          <i class="ph ph-caret-right"></i>
+        </button>
+      </div>
+
     </div>
 
     <!-- ── 선택 모드 하단 바 ── -->
     <div v-if="selectMode" class="sel-bar">
       <span class="sel-count">{{ t('ana.sel.count', { count: selectedCount }) }}</span>
-      <button class="sel-delete" :class="{ armed: selectedCount }" :disabled="!selectedCount" @click="deleteSelected">
+      <button
+        class="sel-delete"
+        :class="{ armed: selectedCount, busy: deleting }"
+        :disabled="!selectedCount || deleting"
+        :aria-busy="deleting"
+        @click="deleteSelected"
+      >
         {{ t('common.delete') }}
       </button>
     </div>
@@ -775,6 +809,29 @@ onBeforeUnmount(() => {
 }
 .drill-chip i { font-size: 11px; }
 
+.clip-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.pager-btn {
+  width: 36px; height: 36px;
+  border-radius: 100px;
+  border: none;
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-400);
+  font-size: 14px;
+  cursor: pointer;
+}
+.pager-btn:disabled { opacity: 0.4; cursor: default; }
+.pager-count {
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
+  font-variant-numeric: tabular-nums;
+}
 .clip-row {
   flex: none;
   display: flex;

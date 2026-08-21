@@ -109,10 +109,7 @@ export const messages = {
 
   'prompt.label.query': { en: 'Prompt', ko: '프롬프트' },
   'prompt.label.triggers': { en: 'Keywords', ko: '키워드' },
-  'prompt.status.applied': {
-    en: 'Settings saved. Inference was not started.',
-    ko: '설정을 저장했습니다. 추론은 시작되지 않았습니다.',
-  },
+  'prompt.status.applied': { en: 'Settings saved.', ko: '설정을 저장했습니다.' },
   'prompt.action.start': { en: 'Start', ko: '시작' },
   'prompt.action.stop': { en: 'Stop', ko: '정지' },
   'prompt.status.needStreaming': {

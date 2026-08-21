@@ -21,6 +21,8 @@ const { t } = useLocale()
 const playerEl = ref(null)
 const playerPlaying = ref(false)
 const playerCurrentTime = ref(0)
+// 서버에서 클립을 받아 오는 동안의 버퍼링 표시 (전수 조사 #18)
+const buffering = ref(false)
 const playerDuration = ref(0)
 const fullscreen = ref(false)
 
@@ -153,9 +155,15 @@ function onKeydown(e) {
               @ended="onPlayerEnded"
               @loadedmetadata="onLoadedMetadata"
               @timeupdate="onTimeUpdate"
+              @loadstart="buffering = true"
+              @waiting="buffering = true"
+              @canplay="buffering = false"
+              @playing="buffering = false"
+              @error="buffering = false"
             ></video>
 
-            <span v-if="!playerPlaying" class="play-ring"><i class="ph-fill ph-play"></i></span>
+            <span v-if="buffering" class="clip-buffering"><span class="clip-spinner"></span></span>
+            <span v-else-if="!playerPlaying" class="play-ring"><i class="ph-fill ph-play"></i></span>
 
             <span v-if="fullscreen" class="fs-title">{{ title }}</span>
             <button
@@ -428,4 +436,21 @@ function onKeydown(e) {
   line-height: 1.5;
   color: var(--color-text);
 }
+.clip-buffering {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.clip-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  animation: clipspin 0.8s linear infinite;
+}
+@keyframes clipspin { to { transform: rotate(360deg); } }
 </style>

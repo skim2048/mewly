@@ -49,13 +49,27 @@ function signature(payload) {
   return String(hash)
 }
 
-export function markPresetApplied(payload, dateIso) {
+// @claude 서명은 부위별(labels·prompt)로 관리한다 — 기본 프롬프트(/prompt)의
+// @claude 변경도 라벨 분포를 바꾸므로 단절 대상이다(회신서 §10에서 실증:
+// @claude 문장 수 제약 추가로 무라벨 85% 붕괴). 어느 부위든 서명이 바뀌면
+// @claude 단절 일자를 갱신한다.
+function markConfigApplied(part, payload, dateIso) {
   try {
     const sig = signature(payload)
-    const prev = JSON.parse(window.localStorage.getItem(EPOCH_KEY))
-    if (prev?.sig === sig) return // 동일 구성 재적용은 단절이 아니다
-    window.localStorage.setItem(EPOCH_KEY, JSON.stringify({ sig, date: dateIso }))
+    const prev = JSON.parse(window.localStorage.getItem(EPOCH_KEY)) || {}
+    const sigs = prev.sigs || (prev.sig ? { labels: prev.sig } : {}) // 구형 {sig} 이행
+    if (sigs[part] === sig) return // 동일 구성 재적용은 단절이 아니다
+    sigs[part] = sig
+    window.localStorage.setItem(EPOCH_KEY, JSON.stringify({ sigs, date: dateIso }))
   } catch { /* 기록 실패 시 기준선 한정만 잃는다 — 무시 */ }
+}
+
+export function markPresetApplied(payload, dateIso) {
+  markConfigApplied('labels', payload, dateIso)
+}
+
+export function markPromptApplied(promptText, dateIso) {
+  markConfigApplied('prompt', promptText, dateIso)
 }
 
 export function readPresetEpochDate() {

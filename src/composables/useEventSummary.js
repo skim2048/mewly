@@ -26,19 +26,24 @@ export async function fetchDaySummary(dateIso) {
     const parsed = new Date(ev.created_at)
     if (Number.isNaN(parsed.getTime())) continue
     const hour = parsed.getHours()
-    let card = byKeyword.get(ev.trigger)
-    if (!card) {
-      card = {
-        keyword: ev.trigger,
-        total: 0,
-        bins: Array(24).fill(0),
-        clipsByHour: Array.from({ length: 24 }, () => []),
+    // @claude trigger는 매치된 키워드들의 쉼표 결합 문자열이다("sitting,looking").
+    // @claude 결합 단위가 아니라 키워드 단위로 분해해 각 카드에 귀속시킨다 —
+    // @claude 동시 매치 이벤트는 해당 키워드 카드 모두에 1회씩 계상된다.
+    for (const keyword of ev.trigger.split(',').map((k) => k.trim()).filter(Boolean)) {
+      let card = byKeyword.get(keyword)
+      if (!card) {
+        card = {
+          keyword,
+          total: 0,
+          bins: Array(24).fill(0),
+          clipsByHour: Array.from({ length: 24 }, () => []),
+        }
+        byKeyword.set(keyword, card)
       }
-      byKeyword.set(ev.trigger, card)
+      card.total += 1
+      card.bins[hour] += 1
+      if (ev.clip_name) card.clipsByHour[hour].push(ev.clip_name)
     }
-    card.total += 1
-    card.bins[hour] += 1
-    if (ev.clip_name) card.clipsByHour[hour].push(ev.clip_name)
   }
 
   const cards = [...byKeyword.values()].sort((a, b) => b.total - a.total)

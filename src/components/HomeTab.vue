@@ -85,6 +85,7 @@ watch(fullscreen, (fs) => {
 
 // ── VLM card ──
 const modelMenu = ref(false)
+const modelSwitching = ref(false)
 // @claude 모델 id의 마지막 경로 조각만 표기한다
 // @claude (예: Efficient-Large-Model/VILA1.5-3b → VILA1.5-3b).
 function shortModelName(id) {
@@ -98,6 +99,8 @@ const modelLabel = computed(() =>
 async function switchModel(name) {
   modelMenu.value = false
   if (!name || name === sseState.vlm_current_model) return
+  // 요청~SSE '전환 중' 반영 사이 공백을 busy로 메운다 (전수 조사 #10)
+  modelSwitching.value = true
   try {
     await authFetch(APP_ENDPOINTS.vlmSwitch, {
       method: 'POST',
@@ -105,6 +108,7 @@ async function switchModel(name) {
       body: JSON.stringify({ model: name }),
     })
   } catch {}
+  modelSwitching.value = false
 }
 
 // @claude 거부되면(스트리밍 꺼짐) 사유 안내가 있는 프롬프트 모달을 연다.
@@ -698,6 +702,8 @@ onBeforeUnmount(() => {
           <div class="model-wrap">
             <button
               class="model-btn"
+              :class="{ busy: modelSwitching }"
+              :aria-busy="modelSwitching"
               :aria-expanded="modelMenu"
               @click="modelMenu = !modelMenu"
               @keydown.esc="modelMenu = false"
@@ -719,8 +725,9 @@ onBeforeUnmount(() => {
           </div>
           <button
             class="infer-btn"
-            :class="{ on: analysisActive }"
+            :class="{ on: analysisActive, busy: analysisBusy }"
             :disabled="analysisBusy"
+            :aria-busy="analysisBusy"
             @click="onInferClick"
           >{{ analysisActive ? t('prompt.action.stop') : t('prompt.action.start') }}</button>
         </div>

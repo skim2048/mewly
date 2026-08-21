@@ -42,7 +42,7 @@ async function save() {
       <input v-model="host" spellcheck="false" autocapitalize="off" inputmode="url" enterkeyhint="done">
     </label>
     <div class="actions">
-      <button class="btn primary" :disabled="saving" @click="save">{{ t('common.save') }}</button>
+      <button class="btn primary" :class="{ busy: saving }" :disabled="saving" :aria-busy="saving" @click="save">{{ t('common.save') }}</button>
       <button class="btn" :disabled="saving" @click="emit('close')">{{ t('common.cancel') }}</button>
     </div>
   </div>
