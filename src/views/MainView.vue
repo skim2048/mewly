@@ -175,6 +175,8 @@ onMounted(loadCamera)
           v-if="activeTab === 'home'"
           @open-sheet="sheet = $event"
           @open-modal="modal = $event"
+          @open-overlay="overlay = $event"
+          @go-tab="goTab"
         />
         <CalendarTab
           v-else-if="activeTab === 'cal'"

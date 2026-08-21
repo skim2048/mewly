@@ -343,6 +343,10 @@ export const messages = {
   'sched.done': { en: 'Done', ko: '마침' },
   'sched.alarmWord': { en: 'Alarm', ko: '알람' },
 
+  'home.card.schedule': { en: "Today's schedule", ko: '오늘 일정' },
+  'home.card.events': { en: "Today's events", ko: '오늘 이벤트' },
+  'home.card.none': { en: 'None', ko: '없음' },
+  'home.card.n': { en: '{n}', ko: '{n}건' },
   'home.tapConnect': { en: 'Tap to view live', ko: '탭하여 라이브 보기' },
   'home.connCancel': { en: 'Starting live — tap to cancel', ko: '라이브 준비 중 — 탭하여 취소' },
   'home.noCam': { en: 'No camera profile registered', ko: '등록된 카메라 프로필이 없습니다' },

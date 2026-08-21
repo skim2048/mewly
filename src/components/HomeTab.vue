@@ -15,14 +15,20 @@ import { authFetch } from '../composables/useFetch.js'
 import { withDayHeaders } from '../composables/dates.js'
 import { useToast } from '../composables/useToast.js'
 import { persistentRef } from '../composables/storage.js'
+import { useProfile } from '../composables/useProfile.js'
+import { breedLabel } from '../composables/useProfile.js'
+import { useSchedules } from '../composables/useSchedules.js'
+import { useClips } from '../composables/useClips.js'
+import { fetchDaySummary } from '../composables/useEventSummary.js'
+import { toIsoDate } from '../composables/dates.js'
 import { onBackButton } from '../native/backButton.js'
 import { setStatusBarHidden } from '../native/init.js'
 import network from '../../config/network.json'
 
-const emit = defineEmits(['open-sheet', 'open-modal'])
+const emit = defineEmits(['open-sheet', 'open-modal', 'open-overlay', 'go-tab'])
 
 const { state: sseState } = useSSE()
-const { t } = useLocale()
+const { t, locale } = useLocale()
 
 const { accessToken } = useAuth()
 const { configured, connecting, connected, ptzEnabled, setConnected, setDisconnected, disconnect } = useCamera()
@@ -139,6 +145,53 @@ const deviceButtons = [
   { key: 'temp', icon: 'ph ph-thermometer-simple', label: () => t('dev.temp') },
   { key: 'mic', icon: 'ph ph-microphone', label: () => t('dev.mic') },
 ]
+
+// ── 요약 대시보드 (VLM 카드 아래 — 프로필·오늘 일정·오늘 이벤트) ──
+const { profile, ageText } = useProfile()
+const { schedulesOn } = useSchedules()
+const { clipVersion } = useClips()
+
+const profileSub = computed(() => {
+  const parts = [
+    profile.value.breed && breedLabel(profile.value.breed, locale.value),
+    ageText.value,
+  ].filter(Boolean)
+  return parts.length ? parts.join(' · ') : t('profile.empty')
+})
+
+const todaySchedules = computed(() => schedulesOn(toIsoDate()))
+const nextSchedule = computed(() => {
+  const now = new Date()
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  return todaySchedules.value.find((it) => !it.done && !it.allDay && it.time >= hhmm) ?? null
+})
+const scheduleSummary = computed(() => {
+  const n = todaySchedules.value.length
+  if (!n) return t('home.card.none')
+  const count = t('home.card.n', { n })
+  return nextSchedule.value ? `${count} · ${nextSchedule.value.time} ${nextSchedule.value.title}` : count
+})
+
+// 오늘 이벤트: /events 집계 재사용 (클립 변화 시 갱신)
+const todayEvents = ref(null) // null=미적재 | { total, top }
+async function loadTodayEvents() {
+  if (!isAuthenticatedForSummary()) return
+  try {
+    const sum = await fetchDaySummary(toIsoDate())
+    todayEvents.value = { total: sum.total, top: sum.cards[0]?.keyword ?? null }
+  } catch { /* 홈 요약은 조용히 생략 — 상세 오류는 분석 탭이 담당 */ }
+}
+function isAuthenticatedForSummary() {
+  return !!accessToken.value
+}
+watch(clipVersion, loadTodayEvents, { immediate: true })
+const eventSummary = computed(() => {
+  if (!todayEvents.value) return '—'
+  const { total, top } = todayEvents.value
+  if (!total) return t('home.card.none')
+  const count = t('home.card.n', { n: total })
+  return top ? `${count} · ${top}` : count
+})
 
 // ── 전체화면 PTZ 패드 (연속 이동: 누르는 동안 이동, 떼면 정지) ──
 const PTZ_DIRS = {
@@ -737,6 +790,37 @@ onBeforeUnmount(() => {
       </template>
     </div>
 
+    <!-- ── 요약 대시보드 (사용자 확정): 프로필 · 오늘 일정 · 오늘 이벤트 ── -->
+    <div class="sum-grid">
+      <button class="sum-row" @click="emit('open-overlay', 'profile')">
+        <span class="sum-avatar">
+          <img v-if="profile.photo" :src="profile.photo" alt="">
+          <i v-else class="ph ph-dog"></i>
+        </span>
+        <span class="sum-copy">
+          <span class="sum-title">{{ profile.name || t('profile.title') }}</span>
+          <span class="sum-value">{{ profileSub }}</span>
+        </span>
+        <i class="ph ph-caret-right sum-caret"></i>
+      </button>
+      <button class="sum-row" @click="emit('go-tab', 'cal')">
+        <span class="sum-icon"><i class="ph ph-calendar-blank"></i></span>
+        <span class="sum-copy">
+          <span class="sum-title">{{ t('home.card.schedule') }}</span>
+          <span class="sum-value">{{ scheduleSummary }}</span>
+        </span>
+        <i class="ph ph-caret-right sum-caret"></i>
+      </button>
+      <button class="sum-row" @click="emit('go-tab', 'ana')">
+        <span class="sum-icon"><i class="ph ph-chart-bar"></i></span>
+        <span class="sum-copy">
+          <span class="sum-title">{{ t('home.card.events') }}</span>
+          <span class="sum-value">{{ eventSummary }}</span>
+        </span>
+        <i class="ph ph-caret-right sum-caret"></i>
+      </button>
+    </div>
+
   </div>
 </template>
 
@@ -1324,5 +1408,79 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 8px;
   padding-right: 8px;
+}
+
+/* ── 요약 대시보드 ── */
+.sum-grid {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 16px 12px;
+}
+.sum-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-neutral-900);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.sum-avatar {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 19px;
+  background: var(--color-neutral-800);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-500);
+  font-size: 18px;
+}
+.sum-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sum-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 19px;
+  background: var(--color-neutral-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-neutral-400);
+  font-size: 17px;
+}
+.sum-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sum-title {
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
+}
+.sum-value {
+  font-size: var(--font-body);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sum-caret {
+  flex: none;
+  font-size: 13px;
+  color: var(--color-neutral-500);
 }
 </style>
