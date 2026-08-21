@@ -324,16 +324,14 @@ onMounted(loadCamera)
 /* — top app bar (시안: 58px, 홈=아바타+브랜드, 그 외=탭 제목) — */
 .topbar {
   position: relative;
-  /* @claude edge-to-edge(안드 15+)에서 상태바 아래로 내용이 깔리지 않도록.
-     non-overlay 상태바(현행)에서는 inset이 0이라 58px 그대로다. */
-  /* 엣지 투 엣지: 인셋은 네이티브가 --inset-*으로 주입 (웹은 env 폴백) */
+  /* 엣지 투 엣지: 인셋은 네이티브가 --inset-*으로 주입 (웹은 env 폴백).
+     주의: padding 축약형이 상단 인셋을 덮어쓰지 않도록 한 선언으로 합친다. */
   height: calc(58px + var(--inset-top, env(safe-area-inset-top, 0px)));
-  padding-top: var(--inset-top, env(safe-area-inset-top, 0px));
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px 0 16px;
+  padding: var(--inset-top, env(safe-area-inset-top, 0px)) 10px 0 16px;
   border-bottom: 1px solid var(--color-divider);
 }
 .brand {
@@ -353,7 +351,8 @@ onMounted(loadCamera)
 .session-chip {
   position: absolute;
   left: 50%;
-  top: 50%;
+  /* 내용 영역(인셋 아래 58px)의 세로 중앙 */
+  top: calc(var(--inset-top, env(safe-area-inset-top, 0px)) + 29px);
   transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
@@ -423,7 +422,8 @@ onMounted(loadCamera)
 /* — bottom navigation (시안: 64px, 4열, 활성=accent·fill·800) — */
 .bottom-nav {
   flex: none;
-  height: 64px;
+  /* border-box이므로 인셋 패딩만큼 높이도 늘려 내용 64px를 보존한다 */
+  height: calc(64px + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
   border-top: 1px solid var(--color-divider);
   display: grid;
   /* 탭 수가 바뀌어도 CSS 수정이 없도록 균등 자동 분할 */
