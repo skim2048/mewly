@@ -50,11 +50,29 @@ if (isNative) {
   window.addEventListener('resize', () => syncInsets())
 }
 
+// @claude 아이콘 웹폰트는 @font-face 선언만으로는 내려받아지지 않고, 해당
+// @claude 패밀리의 글리프를 그리는 요소가 나타나야 요청된다. 첫 화면인 로그인에는
+// @claude 아이콘이 없으므로 여기서 로드를 명시적으로 개시한다(이 역할 때문에
+// @claude index.html에는 아이콘 폰트 preload를 두지 않는다). document.fonts.ready는
+// @claude 아직 시작되지 않은 로드를 기다리지 않으므로, 이 개시가 있어야 아래
+// @claude 스플래시 대기가 실제로 아이콘 폰트를 포함한다. 두 style.css 모두
+// @claude unicode-range가 없으므로 기본 탐색 문자열로도 폰트 전체가 매치된다.
+const ICON_FONTS = ['1em Phosphor', '1em Phosphor-Fill']
+
+function loadIconFonts() {
+  try {
+    return Promise.all(ICON_FONTS.map((font) => document.fonts.load(font)))
+      .catch(() => {})
+  } catch {
+    return Promise.resolve()
+  }
+}
+
 // @claude 스플래시는 launchAutoHide: false(capacitor.config.json)로 잡아두고,
 // @claude 아이콘 웹폰트가 준비된 뒤 걷는다 — 콜드스타트의 빈 아이콘 박스 방지.
 export async function hideSplashWhenReady() {
   await Promise.race([
-    document.fonts.ready,
+    loadIconFonts().then(() => document.fonts.ready),
     new Promise((resolve) => setTimeout(resolve, 2000)),
   ])
   if (!isNative) return

@@ -8,9 +8,9 @@
   <title>Mewly</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="preload" href="/fonts/nanumsquare/NanumSquareR.woff2" as="font" type="font/woff2" crossorigin />
-  <!-- 아이콘 웹폰트 preload: 스플래시 해제(document.fonts.ready) 전에 준비돼야 빈 박스가 없다 -->
-  <link rel="preload" href="/icons/phosphor/regular/Phosphor.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="/icons/phosphor/fill/Phosphor-Fill.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- 아이콘 웹폰트는 preload하지 않는다: 첫 화면(로그인)에 아이콘이 없어 요청이
+       preload와 매칭되지 않고 콘솔 경고만 남긴다. 대신 native/init.js가 부팅 시
+       document.fonts.load로 다운로드를 개시하고, 스플래시 해제가 그 완료를 기다린다. -->
   <link rel="stylesheet" href="/icons/phosphor/regular/style.css" />
   <link rel="stylesheet" href="/icons/phosphor/fill/style.css" />
 </head>
