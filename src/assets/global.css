@@ -80,9 +80,10 @@
   --color-accent-900: #4a2513;
 
   /* ── Type scale — 텍스트 크기는 이 5단만 쓴다(아이콘·디스플레이 숫자 제외).
-     파편화된 11~15px대를 정리하고 본문을 13→14px로 상향(사용자 승인). ── */
-  --font-caption: 11px;
-  --font-label: 12px;
+     파편화된 11~15px대를 정리하고 본문 14px 상향(사용자 승인). 실기 검수에서
+     하위 두 단이 작다는 지적으로 caption 11→12, label 12→13 재상향(2026-08-21). ── */
+  --font-caption: 12px;
+  --font-label: 13px;
   --font-body: 14px;
   --font-title: 16px;
   --font-heading: 18px;
