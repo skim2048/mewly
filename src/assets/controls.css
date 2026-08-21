@@ -207,7 +207,7 @@ input[type='range'].ctl-range::-moz-range-thumb {
 .collapse-value.on { color: var(--color-accent); }
 .collapse-caret {
   flex: none;
-  font-size: var(--font-body);
+  font-size: 13px;
   color: var(--color-neutral-600);
 }
 .collapse-detail {

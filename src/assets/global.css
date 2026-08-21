@@ -79,9 +79,15 @@
   --color-accent-800: #7c3e20;
   --color-accent-900: #4a2513;
 
-  /* ── Type scale — 텍스트 크기는 이 5단만 쓴다(아이콘·디스플레이 숫자 제외).
-     파편화된 11~15px대를 정리하고 본문 14px 상향(사용자 승인). 실기 검수에서
-     하위 두 단이 작다는 지적으로 caption 11→12, label 12→13 재상향(2026-08-21). ── */
+  /* ── Type scale — 텍스트 크기는 이 5단만 쓴다(아이콘 글리프·디스플레이
+     숫자와 그 단위 짝은 px 유지). 역할 배정 기준(2026-08-21 전수 재검토):
+       heading  프레임·화면 제목 (한 레이어에 1개)
+       title    화면 내 1차 강조 (날짜·달 라벨, 프로필 이름, 단일 CTA)
+       body     읽는 텍스트 — 본문·리스트 제목·버튼·입력값·안내 박스·공용 폼 라벨
+       label    식별 텍스트 — 필드 라벨·부제·힌트·칩·수치 메타·고밀도 로그
+       caption  주변 텍스트 — 눈금·요일·타임스탬프·미세 배지·스트림 메타
+     같은 역할은 화면이 달라도 같은 토큰을 쓴다. 위계의 미세 구분은 크기가
+     아니라 굵기·색으로 진다. ── */
   --font-caption: 12px;
   --font-label: 13px;
   --font-body: 14px;
@@ -285,7 +291,9 @@ body {
 /* ── Native app feel — 웹뷰 티 제거 ──
    터치 하이라이트·텍스트 선택·오버스크롤 체이닝을 네이티브 앱처럼 통제한다.
    PTZ/Mic 패드는 자체 touch-action: none(컴포넌트 스코프)이라 영향 없음. */
-html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+/* html 바탕도 토큰으로 칠한다 — edge-to-edge 여백·시스템 바 영역이
+   WebView 기본색(흰색)으로 비치는 것을 방지 (실기 지적) */
+html { background: var(--color-bg); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 body { user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
 input, textarea, [contenteditable="true"] { user-select: text; -webkit-user-select: text; }
 

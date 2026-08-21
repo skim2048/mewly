@@ -881,10 +881,11 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
   border-radius: 5px;
 }
-/* 시안: 전체화면에서는 반투명 알약 배경 */
+/* 시안: 전체화면에서는 반투명 알약 배경 + fs-round와 동일한 테두리 */
 .video-wrap.fs .stream-meta {
+  border: 1px solid rgba(255, 255, 255, 0.2);
   bottom: 14px; left: 18px;
-  font-size: var(--font-label);
+  font-size: var(--font-caption);
   color: rgba(233, 233, 237, 0.6);
   background: rgba(0, 0, 0, 0.45);
   padding: 5px 9px;
@@ -961,8 +962,8 @@ onBeforeUnmount(() => {
   gap: 5px;
 }
 .fs-ptz-btn {
-  border-radius: 10px;
-  border: none;
+  border-radius: 100px; /* 사용자 확정: 확대 모드 D-Pad는 원형 */
+  border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.45);
   color: #e9e9ed;
   font-size: 15px;
@@ -1063,7 +1064,7 @@ onBeforeUnmount(() => {
   flex: none;
   display: flex;
   gap: 8px;
-  font-size: var(--font-body);
+  font-size: var(--font-label);
   line-height: 1.5;
   color: var(--color-neutral-400);
   border-radius: 6px;

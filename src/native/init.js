@@ -49,13 +49,18 @@ export async function hideSplashWhenReady() {
   } catch { /* no-op */ }
 }
 
-// 영상 전체화면 진입/이탈용 (HomeTab)
+// @claude 영상 전체화면 진입/이탈 (HomeTab·ClipPlayerModal). 상태바만 숨기면
+// @claude 내비바(스와이프 바) 영역이 남아 좌측 띠로 보이므로(실기 지적) 양쪽
+// @claude 시스템 바를 함께 숨기는 몰입 모드로 처리한다.
 export async function setStatusBarHidden(hidden) {
   if (!isNative) return
   try {
     if (hidden) await StatusBar.hide()
     else await StatusBar.show()
   } catch { /* no-op */ }
+  try {
+    await NavigationBar.setBarsHidden({ hidden })
+  } catch { /* 플러그인 미등록 등 — 무시 */ }
 }
 
 // ── 햅틱 — 탭 전환·토글·PTZ/Mic 패드에만 사용한다(과용 금지) ──

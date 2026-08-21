@@ -40,6 +40,9 @@ function onBackdrop(e) {
   width: 100%;
   max-height: 88%;
   background: var(--color-surface);
+  /* 다크에서 배경과의 명도차가 작아 경계가 소실됨 → 헤어라인 (실기 지적) */
+  border: 1px solid var(--color-divider);
+  border-bottom: none;
   border-radius: 28px 28px 0 0;
   display: flex;
   flex-direction: column;

@@ -4,6 +4,8 @@ import android.graphics.Color;
 import android.view.Window;
 
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -18,6 +20,29 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "NavigationBar")
 public class NavigationBarPlugin extends Plugin {
+
+    /**
+     * 전체화면(영상 확대) 몰입 모드: 상태바·내비바를 함께 숨긴다.
+     * 스와이프 시 일시 표시(BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE) — Android 표준.
+     * JS 측 호출: src/native/init.js의 setStatusBarHidden().
+     */
+    @PluginMethod
+    public void setBarsHidden(PluginCall call) {
+        boolean hidden = Boolean.TRUE.equals(call.getBoolean("hidden", false));
+        getActivity().runOnUiThread(() -> {
+            Window window = getActivity().getWindow();
+            WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(window, window.getDecorView());
+            if (hidden) {
+                controller.setSystemBarsBehavior(
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.hide(WindowInsetsCompat.Type.systemBars());
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars());
+            }
+            call.resolve();
+        });
+    }
 
     @PluginMethod
     public void setColor(PluginCall call) {

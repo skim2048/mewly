@@ -243,7 +243,7 @@ function remove() {
   border: 1px solid transparent;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
-  font-size: var(--font-body);
+  font-size: var(--font-label);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;

@@ -284,7 +284,7 @@ const daySchedules = computed(() => {
 .sched-time {
   flex: none;
   width: 48px;
-  font-size: var(--font-label);
+  font-size: var(--font-caption);
   color: var(--color-neutral-400);
 }
 .sched-time.next {

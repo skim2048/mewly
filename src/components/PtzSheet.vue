@@ -512,7 +512,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--font-body);
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 .ptz-gauge input { width: 100%; min-width: 0; }
@@ -590,7 +590,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   margin-top: -6px;
 }
 .ptz-row-label {
-  font-size: var(--font-body);
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 /* 우측 열 전체 폭을 두 버튼이 절반씩 차지한다 — 줌 슬라이더와 끝선 정렬 */

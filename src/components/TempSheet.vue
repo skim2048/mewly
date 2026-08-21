@@ -190,7 +190,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   font-variant-numeric: tabular-nums;
 }
 .temp-unit {
-  font-size: var(--font-title);
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-neutral-500);
 }

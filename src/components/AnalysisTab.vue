@@ -474,7 +474,7 @@ onBeforeUnmount(() => {
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
-  font-size: var(--font-title);
+  font-size: 15px;
   cursor: pointer;
 }
 .date-btn:disabled { opacity: 0.35; cursor: default; }
@@ -608,7 +608,7 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .rhythm-badge {
-  font-size: var(--font-caption);
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   text-align: right;
 }

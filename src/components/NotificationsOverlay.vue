@@ -177,7 +177,7 @@ function open(n) {
   border: none;
   background: var(--color-neutral-800);
   color: var(--color-neutral-400);
-  font-size: var(--font-label);
+  font-size: var(--font-caption);
   cursor: pointer;
   display: flex;
   align-items: center;

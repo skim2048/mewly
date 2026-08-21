@@ -357,7 +357,7 @@ onMounted(loadCamera)
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: var(--font-body);
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   background: var(--color-neutral-900);
   border-radius: 100px;
