@@ -1,9 +1,10 @@
 import { ref } from 'vue'
+import network from '../../config/network.json'
 
 // @claude The protocol pill lives in the dashboard top bar (mockup) while the
 // @claude player consuming it lives in LiveStream, so the preference is shared
 // @claude module state rather than component state.
-const DEFAULT_STREAM_PROTOCOL = 'hls'
+const DEFAULT_STREAM_PROTOCOL = network.stream.defaultProtocol
 const STREAM_PROTOCOL_STORAGE_KEY = 'mewly_stream_protocol'
 const STREAM_PROTOCOLS = ['hls', 'webrtc']
 

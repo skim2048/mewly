@@ -267,8 +267,9 @@ let retryTimer = null
 let pipelineRecoveryTimer = null
 let pc = null
 let sessionId = 0
-const STALL_TIMEOUT = network.hls.stallTimeoutMs
-const RETRY_BACKOFF = network.hls.retryBackoffMs
+// @claude 정지 감지·재시도 간격은 HLS/WebRTC 공통 (config/network.json stream.*)
+const STALL_TIMEOUT = network.stream.stallTimeoutMs
+const RETRY_BACKOFF = network.stream.retryBackoffMs
 
 // @claude The preference is shared with the top bar's segmented control.
 const { preferredProtocol } = useStreamProtocol()
@@ -391,10 +392,8 @@ async function initHls() {
 
   if (HlsLib && HlsLib.isSupported()) {
     hls = new HlsLib({
-      liveSyncDurationCount: 1,
-      liveMaxLatencyDurationCount: 3,
-      maxBufferLength: 3,
-      maxMaxBufferLength: 6,
+      // 라이브 지연 튜닝 — 키는 hls.js 옵션명 그대로 (config/network.json)
+      ...network.stream.hlsBuffer,
       // @claude The HLS relay sits behind the router and every request —
       // @claude playlist and segments alike — must carry the access token.
       xhrSetup: (xhr) => {
@@ -457,7 +456,9 @@ async function initWebRTC() {
   if (!video) return
 
   try {
-    pc = new RTCPeerConnection({ iceServers: [] })
+    // @claude 기본 []: LAN 직결 전제라 STUN이 불필요하다. 원격 접근을 도입하면
+    // @claude config/network.json stream.webrtc.iceServers에 서버를 추가한다.
+    pc = new RTCPeerConnection({ iceServers: network.stream.webrtc.iceServers })
     pc.addTransceiver('video', { direction: 'recvonly' })
     pc.addTransceiver('audio', { direction: 'recvonly' })
 

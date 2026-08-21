@@ -1,9 +1,20 @@
 {
   "backendPort": 8000,
   "cameraToggleWaitMs": 8000,
-  "hls": {
+  "stream": {
+    "defaultProtocol": "hls",
     "stallTimeoutMs": 8000,
-    "retryBackoffMs": 3000
+    "retryBackoffMs": 3000,
+    "statsIntervalMs": 1000,
+    "hlsBuffer": {
+      "liveSyncDurationCount": 1,
+      "liveMaxLatencyDurationCount": 3,
+      "maxBufferLength": 3,
+      "maxMaxBufferLength": 6
+    },
+    "webrtc": {
+      "iceServers": []
+    }
   },
   "sseProbeMinIntervalMs": 5000,
   "summaryRetry": {

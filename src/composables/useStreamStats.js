@@ -1,4 +1,5 @@
 import { reactive, onBeforeUnmount } from 'vue'
+import network from '../../config/network.json'
 
 function emptyStats() {
   return {
@@ -29,7 +30,7 @@ export function useStreamStats({ videoRef, isWebRTC, getPeerConnection, getHlsIn
     stopStats()
     prevBytes = 0
     prevTime = performance.now()
-    statsTimer = setInterval(collectStats, 1000)
+    statsTimer = setInterval(collectStats, network.stream.statsIntervalMs)
   }
 
   async function collectStats() {
