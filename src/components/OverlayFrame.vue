@@ -48,7 +48,7 @@ const emit = defineEmits(['close'])
 }
 .head-title {
   flex: 1;
-  font-size: 17px;
+  font-size: var(--font-heading);
   font-weight: 700;
 }
 </style>

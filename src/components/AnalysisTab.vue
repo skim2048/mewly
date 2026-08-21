@@ -474,12 +474,12 @@ onBeforeUnmount(() => {
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
-  font-size: 15px;
+  font-size: var(--font-title);
   cursor: pointer;
 }
 .date-btn:disabled { opacity: 0.35; cursor: default; }
 .date-label {
-  font-size: 15px;
+  font-size: var(--font-title);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
   flex: none;
   padding: 18px 0;
   text-align: center;
-  font-size: 12.8px;
+  font-size: var(--font-body);
   color: var(--color-neutral-500);
 }
 
@@ -526,12 +526,12 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .hl-title {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 700;
   color: var(--color-text);
 }
 .hl-sub {
-  font-size: 12px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 
@@ -558,11 +558,11 @@ onBeforeUnmount(() => {
 }
 .card-head.on .card-name { color: var(--color-accent); }
 .card-name {
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-weight: 600;
 }
 .card-total {
-  font-size: 12px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
@@ -571,7 +571,7 @@ onBeforeUnmount(() => {
 .strip {
   display: flex;
   gap: 2px;
-  height: 26px;
+  height: 34px; /* 터치 타깃 보완(사용자 승인) — 셀 폭은 24분할 구조상 한계 */
 }
 .cell {
   flex: 1;
@@ -594,8 +594,8 @@ onBeforeUnmount(() => {
 .ruler {
   display: flex;
   justify-content: space-between;
-  font-size: 10.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
   padding: 0 1px;
 }
@@ -608,8 +608,8 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 .rhythm-badge {
-  font-size: 11.3px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   text-align: right;
 }
 .rhythm-badge.ok {
@@ -618,7 +618,7 @@ onBeforeUnmount(() => {
 }
 .rhythm-dev {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-text);
 }
@@ -639,17 +639,17 @@ onBeforeUnmount(() => {
 }
 .state-name {
   flex: 1;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-300);
 }
 .state-share {
-  font-size: 12.5px;
+  font-size: var(--font-body);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .state-mean {
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 
@@ -685,25 +685,25 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 28px;
+  min-height: 36px;
 }
 .clips-title {
   margin-right: auto;
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .clips-title b {
   color: var(--color-neutral-300);
   font-variant-numeric: tabular-nums;
 }
 .drill-chip {
-  height: 28px;
+  height: 34px;
   padding: 0 11px;
   border-radius: 100px;
   border: 1px solid var(--color-accent-700);
   background: var(--color-accent-900);
   color: var(--color-accent);
-  font-size: 11.5px;
+  font-size: var(--font-label);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -723,13 +723,13 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .sel-pill {
-  height: 30px;
+  height: 36px;
   padding: 0 13px;
   border-radius: 100px;
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
-  font-size: 12px;
+  font-size: var(--font-label);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
@@ -765,7 +765,7 @@ onBeforeUnmount(() => {
 }
 .sel-count {
   flex: 1;
-  font-size: 12.8px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
 }
 .sel-delete {
@@ -775,14 +775,14 @@ onBeforeUnmount(() => {
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-600);
-  font-size: 13px;
+  font-size: var(--font-body);
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
 }
 .sel-delete.armed {
-  background: var(--color-accent-900);
-  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
 }
 .clip-thumb {
   position: relative;
@@ -817,12 +817,12 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 .clip-time {
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 .clip-text {
-  font-size: 13px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-neutral-300);
   overflow: hidden;

@@ -79,7 +79,7 @@ function open(n) {
   border: none;
   background: none;
   color: var(--color-neutral-400);
-  font-size: 12.5px;
+  font-size: var(--font-body);
   cursor: pointer;
   padding: 0 8px;
   font-family: inherit;
@@ -101,7 +101,7 @@ function open(n) {
   border-radius: 100px;
   background: none;
   color: var(--color-neutral-400);
-  font-size: 12.8px;
+  font-size: var(--font-body);
   cursor: pointer;
   font-family: inherit;
 }
@@ -123,7 +123,7 @@ function open(n) {
 .notif-empty {
   padding: 40px 0;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--font-body);
   color: var(--color-neutral-500);
 }
 .day-rule {
@@ -131,8 +131,8 @@ function open(n) {
   align-items: center;
   gap: 8px;
   padding: 4px 0;
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .rule-line {
   flex: 1;
@@ -161,12 +161,12 @@ function open(n) {
   gap: 3px;
 }
 .notif-kind {
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .notif-kind.unread { color: var(--color-accent); }
 .notif-text {
-  font-size: 13.3px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-text);
 }
@@ -176,8 +176,8 @@ function open(n) {
   border-radius: 15px;
   border: none;
   background: var(--color-neutral-800);
-  color: var(--color-neutral-500);
-  font-size: 12px;
+  color: var(--color-neutral-400);
+  font-size: var(--font-label);
   cursor: pointer;
   display: flex;
   align-items: center;

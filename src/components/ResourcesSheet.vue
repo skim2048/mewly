@@ -104,7 +104,7 @@ const rows = computed(() => [
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 13px;
+  font-size: var(--font-body);
 }
 .res-name {
   width: 40px;

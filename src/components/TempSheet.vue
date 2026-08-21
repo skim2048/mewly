@@ -173,8 +173,8 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   min-width: 0;
 }
 .temp-cap {
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
 }
 .temp-value {
   display: flex;
@@ -190,7 +190,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   font-variant-numeric: tabular-nums;
 }
 .temp-unit {
-  font-size: 15px;
+  font-size: var(--font-title);
   font-weight: 700;
   color: var(--color-neutral-500);
 }
@@ -198,7 +198,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
@@ -211,7 +211,7 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   border-radius: 6px;
   background: var(--color-neutral-800);
   color: var(--color-neutral-400);
-  font-size: 11px;
+  font-size: var(--font-caption);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -246,8 +246,8 @@ const ticks = Array.from({ length: 15 }, (_, i) => (i / 14) * 100)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 .range-ends b {

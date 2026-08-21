@@ -12,7 +12,7 @@ const NavigationBar = registerPlugin('NavigationBar')
 export const isNative = Capacitor.isNativePlatform()
 
 // 브랜드 배경색 — global.css의 --color-bg와 반드시 일치해야 한다.
-const BG = { dark: '#1e1e20', light: '#f6f6f7' }
+const BG = { dark: '#181513', light: '#f5f0e9' }
 
 // @claude useTheme의 watch(theme)에서 호출된다. 상태바 색·아이콘 톤과
 // @claude theme-color 메타를 앱 테마에 동기화한다.

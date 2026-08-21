@@ -106,7 +106,7 @@ async function handleChange() {
   gap: 13px;
 }
 .pw-forced {
-  font-size: 12.5px;
+  font-size: var(--font-body);
   line-height: 1.6;
   color: var(--color-neutral-400);
 }
@@ -118,7 +118,7 @@ async function handleChange() {
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
   align-items: flex-start;
-  font-size: 12.3px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }
@@ -134,7 +134,7 @@ async function handleChange() {
   border: 1px solid var(--color-neutral-800);
   background: var(--color-neutral-900);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-family: inherit;
   padding: 0 13px;
   outline: none;
@@ -151,7 +151,7 @@ async function handleChange() {
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-300);
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   cursor: pointer;
 }

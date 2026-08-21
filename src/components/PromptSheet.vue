@@ -107,7 +107,7 @@ function revertAndClose() {
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
   align-items: flex-start;
-  font-size: 12.3px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }

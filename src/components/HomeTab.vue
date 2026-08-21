@@ -831,11 +831,11 @@ onBeforeUnmount(() => {
   color: var(--color-neutral-600);
 }
 .overlay-text {
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--clip-text);
 }
 .overlay-hint {
-  font-size: 11.5px;
+  font-size: var(--font-label);
   color: var(--clip-meta);
 }
 .play-ring {
@@ -867,7 +867,7 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   background: color-mix(in srgb, var(--color-accent) 30%, transparent);
   color: var(--color-accent);
-  font-size: 11px;
+  font-size: var(--font-caption);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -875,7 +875,7 @@ onBeforeUnmount(() => {
 .stream-meta {
   position: absolute;
   bottom: 11px; left: 14px;
-  font-size: 11px;
+  font-size: var(--font-caption);
   color: #e9e9ed;
   background: rgba(0, 0, 0, 0.45);
   padding: 4px 8px;
@@ -884,7 +884,7 @@ onBeforeUnmount(() => {
 /* 시안: 전체화면에서는 반투명 알약 배경 */
 .video-wrap.fs .stream-meta {
   bottom: 14px; left: 18px;
-  font-size: 11.5px;
+  font-size: var(--font-label);
   color: rgba(233, 233, 237, 0.6);
   background: rgba(0, 0, 0, 0.45);
   padding: 5px 9px;
@@ -947,7 +947,7 @@ onBeforeUnmount(() => {
 }
 .fs-ptz-err {
   max-width: 230px;
-  font-size: 11.5px;
+  font-size: var(--font-label);
   line-height: 1.45;
   color: var(--color-text);
   background: rgba(0, 0, 0, 0.5);
@@ -1016,7 +1016,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.3px;
+  font-size: var(--font-label);
   color: var(--color-text);
 }
 .fs-vlm-dot {
@@ -1051,8 +1051,8 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   padding: 2px 0;
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .log-day-rule {
   flex: 1;
@@ -1063,7 +1063,7 @@ onBeforeUnmount(() => {
   flex: none;
   display: flex;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-neutral-400);
   border-radius: 6px;
@@ -1077,7 +1077,7 @@ onBeforeUnmount(() => {
 }
 .log-none {
   padding: 10px 2px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
 }
 
@@ -1104,7 +1104,7 @@ onBeforeUnmount(() => {
   gap: 3px;
 }
 .dev-btn i { font-size: 17px; }
-.dev-btn span { font-size: 11px; }
+.dev-btn span { font-size: var(--font-caption); }
 .dev-btn:active { background: var(--color-neutral-800); }
 .dev-btn:disabled {
   opacity: 0.45;
@@ -1134,7 +1134,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   min-width: 0;
 }
 .vlm-dot {
@@ -1157,7 +1157,7 @@ onBeforeUnmount(() => {
   background: var(--color-neutral-800);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-label);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1197,7 +1197,7 @@ onBeforeUnmount(() => {
   background: transparent;
   color: var(--color-text);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--font-body);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1213,7 +1213,7 @@ onBeforeUnmount(() => {
 .model-opt.current { background: color-mix(in srgb, var(--color-accent) 16%, transparent); }
 .model-none {
   padding: 8px 10px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-500);
 }
 .infer-btn {
@@ -1225,7 +1225,7 @@ onBeforeUnmount(() => {
   background: var(--color-neutral-800);
   color: var(--color-text);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--font-label);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;

@@ -58,7 +58,7 @@ function onBackdrop(e) {
 }
 .modal-title {
   flex: 1;
-  font-size: 16.5px;
+  font-size: var(--font-heading);
   font-weight: 800;
 }
 .modal-x {

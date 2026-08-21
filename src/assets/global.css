@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════════════
    Mewly — Global Stylesheet
-   개정판 Web 시안(tmp/prototype2) 팔레트 — 다크 #1e1e20 / 액센트 #42b883 계열
+   Wally 팔레트 이식(2026-08-21 사용자 확정) — 웜 크림 #181513 / 피치 #ffb38a 계열
    Dark / Light theme via data-theme attribute + CSS custom properties
    ══════════════════════════════════════════════════════════════════════════════ */
 
@@ -49,33 +49,47 @@
   color-scheme: dark;
 
   /* ── 개정판 시안 원형 토큰 ([data-t]) ── */
-  --color-bg:      #1e1e20;
-  --color-surface: #27272b;
-  --color-text:    #dfdfd6;
-  --color-accent:  #42b883;
-  --color-accent-2: #5cc699;
-  --color-divider: rgba(255, 255, 245, 0.09);
+  /* Wally 팔레트 이식(사용자 확정) — 웜 크림/피치. divider는 Wally 원본
+     (#12100f, 배경보다 어두움)이 표면 구분선 역할에 맞지 않아 밝은 알파로 교정. */
+  --color-bg:      #181513;
+  --color-surface: #1c1918;
+  --color-text:    #fff9f3;
+  --color-accent:  #ffb38a;
+  --color-accent-2: #ffc8a7; /* Wally 다크의 strong=primary 중복을 옅은 단계로 교정 */
+  --color-divider: rgba(255, 249, 243, 0.1);
 
   /* Tonal ramps — 시안이 정의한 300~900에 100·200을 같은 간격으로 연장 */
-  --color-neutral-100: #f1f1f4;
-  --color-neutral-200: #dfdfe3;
-  --color-neutral-300: #c6c6cb;
-  --color-neutral-400: #a4a4ab;
-  --color-neutral-500: #84848c;
-  --color-neutral-600: #67676f;
-  --color-neutral-700: #4e4e57;
-  --color-neutral-800: #3b3b42;
-  --color-neutral-900: #2b2b30;
+  --color-neutral-100: #f7f2ec;
+  --color-neutral-200: #dcd4cb;
+  --color-neutral-300: #c6bdb3;
+  --color-neutral-400: #b0a59a;
+  --color-neutral-500: #90867c;
+  --color-neutral-600: #6f665e;
+  --color-neutral-700: #554d46;
+  --color-neutral-800: #403933;
+  --color-neutral-900: #2c2723;
 
-  --color-accent-100: #d1f0e2;
-  --color-accent-200: #a3e2c6;
-  --color-accent-300: #7ed4ae;
-  --color-accent-400: #5cc699;
-  --color-accent-500: #42b883;
-  --color-accent-600: #379a6e;
-  --color-accent-700: #2a7854;
-  --color-accent-800: #1b573e;
-  --color-accent-900: #143c2b;
+  --color-accent-100: #ffeee1;
+  --color-accent-200: #ffddc6;
+  --color-accent-300: #ffc8a7;
+  --color-accent-400: #ffb38a;
+  --color-accent-500: #ff9564;
+  --color-accent-600: #e07440;
+  --color-accent-700: #b0592f;
+  --color-accent-800: #7c3e20;
+  --color-accent-900: #4a2513;
+
+  /* ── Type scale — 텍스트 크기는 이 5단만 쓴다(아이콘·디스플레이 숫자 제외).
+     파편화된 11~15px대를 정리하고 본문을 13→14px로 상향(사용자 승인). ── */
+  --font-caption: 11px;
+  --font-label: 12px;
+  --font-body: 14px;
+  --font-title: 16px;
+  --font-heading: 18px;
+
+  /* ── Danger — 위험 동작(삭제·파괴적 변경) 전용. 시안의 폼 어법 로즈를
+     토큰으로 정식화(사용자 확정). 라이트 테마는 대비 확보를 위해 어둡게. ── */
+  --color-danger: #ff8b8b; /* Wally 다크 delete */
 
   /* Spacing (density 0.7×) */
   --space-1: 2.8px;
@@ -173,32 +187,35 @@
 
 /* ── Light Theme — 개정판 시안의 [data-t="light"] 값 ── */
 [data-theme="light"] {
+  --color-danger: #c65f4a; /* Wally delete(#e05c5c)는 크림 배경 대비 부족 → error 색 채택 */
   color-scheme: light;
 
   /* 기본 토큰의 라이트 재정의 */
-  --color-bg:      #f6f6f7;
-  --color-surface: #ffffff;
-  --color-text:    #3c3c43;
-  --color-accent:  #33a06f;
-  --color-accent-2: #2c7a58;
-  --color-divider: rgba(60, 60, 67, 0.12);
+  --color-bg:      #f5f0e9;
+  --color-surface: #fffbf5;
+  --color-text:    #2d2926;
+  /* Wally 피치(#ffb085)는 텍스트 대비 1.9:1이라 텍스트 겸용인 mewly 어법에
+     부적합 → 어두운 단계로 교정(기존 라이트 그린이 어두웠던 전례와 동일 규칙) */
+  --color-accent:  #cf6636;
+  --color-accent-2: #b0592f;
+  --color-divider: rgba(45, 41, 38, 0.14);
 
   /* 램프 재대응 — 다크 기준으로 쓰인 짙은 단계가 라이트에서 옅은 값을 갖도록 */
-  --color-neutral-900: #ececee;
-  --color-neutral-800: #d9d9de;
-  --color-neutral-700: #bfbfc7;
-  --color-neutral-600: #9e9ea7;
-  --color-neutral-500: #7f7f88;
-  --color-neutral-400: #626269;
-  --color-neutral-300: #48484f;
-  --color-neutral-200: #35353c;
-  --color-neutral-100: #232329;
-  --color-accent-900: #dcf3e8;
-  --color-accent-800: #bfe8d4;
-  --color-accent-400: #33a06f;
-  --color-accent-300: #2c7a58;
-  --color-accent-200: #1f5c41;
-  --color-accent-100: #174a33;
+  --color-neutral-900: #efe8df;
+  --color-neutral-800: #e2d9cd;
+  --color-neutral-700: #cfc4b6;
+  --color-neutral-600: #a2968a;
+  --color-neutral-500: #84776e;
+  --color-neutral-400: #6b5f55;
+  --color-neutral-300: #4f463e;
+  --color-neutral-200: #3a332d;
+  --color-neutral-100: #2d2926;
+  --color-accent-900: #ffe9da;
+  --color-accent-800: #ffd2b4;
+  --color-accent-400: #cf6636;
+  --color-accent-300: #b0592f;
+  --color-accent-200: #8a4525;
+  --color-accent-100: #6e371e;
 
   /* Elevation — 라이트에서는 부드러운 그림자 */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -298,7 +315,7 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   cursor: pointer; text-decoration: none;
   font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 14px; line-height: 1.2; color: var(--color-text);
+  font-size: var(--font-body); line-height: 1.2; color: var(--color-text);
   background: transparent; border: 1px solid transparent;
   padding: var(--space-2) calc(var(--space-3) * 1.2);
   border-radius: var(--radius-md);
@@ -317,19 +334,19 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
 .form-row > .form-field { flex: 1; }
 .form-field {
   display: flex; flex-direction: column; gap: 7px;
-  font-size: 14.5px; font-weight: 700; color: var(--color-neutral-300);
+  font-size: var(--font-body); font-weight: 700; color: var(--color-neutral-300);
 }
 .form-field input,
 .form-field textarea {
   border-radius: 8px; border: none;
   background: var(--color-bg); color: var(--color-text);
-  font-size: 14.5px; font-weight: 400; font-family: inherit; outline: none;
+  font-size: var(--font-body); font-weight: 400; font-family: inherit; outline: none;
   caret-color: var(--color-accent);
   width: 100%; box-sizing: border-box;
 }
 .form-field input { height: 44px; padding: 0 12px; }
 .form-field textarea {
-  padding: 12px; font-size: 14px; line-height: 1.5; resize: none;
+  padding: 12px; font-size: var(--font-body); line-height: 1.5; resize: none;
 }
 .form-field input:focus-visible,
 .form-field textarea:focus-visible {
@@ -342,7 +359,7 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
   display: flex; gap: 9px; padding: 11px 12px; border-radius: 8px;
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
-  font-size: 13.5px; line-height: 1.5; color: var(--color-neutral-300);
+  font-size: var(--font-body); line-height: 1.5; color: var(--color-neutral-300);
   align-items: flex-start;
 }
 .form-note > i { color: var(--color-accent); font-size: 16.5px; flex: none; margin-top: 1px; }
@@ -352,23 +369,23 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
 .form-btn {
   flex: 1; height: 44px; border-radius: 8px; border: none;
   background: var(--color-neutral-800); color: var(--color-text);
-  font-size: 14.5px; font-family: inherit; cursor: pointer;
+  font-size: var(--font-body); font-family: inherit; cursor: pointer;
   transition: background 0.15s;
 }
 .form-btn.primary { background: color-mix(in srgb, var(--color-accent) 28%, transparent); font-weight: 700; }
-.form-btn.danger { background: var(--color-bg); color: #e07a86; }
+.form-btn.danger { background: var(--color-bg); color: var(--color-danger); }
 .form-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* — compact chip buttons (34px, 필터·패널 조작 공용) — */
 .chip-btn {
   flex: none; height: 34px; padding: 0 12px; border-radius: 7px; border: none;
   background: var(--color-neutral-900); color: var(--color-text);
-  font-size: 13.5px; font-family: inherit; cursor: pointer;
+  font-size: var(--font-body); font-family: inherit; cursor: pointer;
   display: inline-flex; align-items: center; gap: 7px;
   transition: background 0.15s;
 }
 .chip-btn.on { background: color-mix(in srgb, var(--color-accent) 16%, transparent); }
-.chip-btn.danger { color: #e07a86; }
+.chip-btn.danger { color: var(--color-danger); }
 .chip-btn:disabled { opacity: 0.45; cursor: default; }
 
 /* ── Hover styles — 진짜 호버 장치에서만. 터치에서는 탭 후 스티키 호버가 남으므로 가드 ── */
@@ -377,9 +394,9 @@ button:active:not(:disabled) { opacity: 0.6; transition: opacity 0s; }
   .btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
   .form-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
   .form-btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 42%, transparent); }
-  .form-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
+  .form-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--color-danger) 18%, transparent); }
   .chip-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
-  .chip-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, #e07a86 18%, transparent); }
+  .chip-btn.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--color-danger) 18%, transparent); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════

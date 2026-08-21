@@ -276,7 +276,7 @@ onMounted(loadCamera)
   flex-direction: column;
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 
 /* — 기기 제어 실패 토스트 — */
@@ -304,7 +304,7 @@ onMounted(loadCamera)
 }
 .toast-text {
   flex: 1;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-text);
 }
@@ -314,7 +314,7 @@ onMounted(loadCamera)
   border: none;
   background: none;
   color: var(--color-neutral-400);
-  font-size: 13px;
+  font-size: var(--font-body);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -341,7 +341,7 @@ onMounted(loadCamera)
   color: var(--color-accent);
 }
 .topbar-title {
-  font-size: 18px;
+  font-size: var(--font-heading);
   font-weight: 700;
 }
 .topbar-right {
@@ -357,7 +357,7 @@ onMounted(loadCamera)
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
   background: var(--color-neutral-900);
   border-radius: 100px;
@@ -373,7 +373,7 @@ onMounted(loadCamera)
   border: 1px solid var(--color-accent-700);
   background: var(--color-accent-900);
   color: var(--color-accent);
-  font-size: 11.8px;
+  font-size: var(--font-label);
   font-weight: 800;
   font-family: inherit;
   cursor: pointer;
@@ -444,7 +444,7 @@ onMounted(loadCamera)
   font-family: inherit;
 }
 .nav-item i { font-size: 20px; }
-.nav-item span { font-size: 10.5px; }
+.nav-item span { font-size: var(--font-caption); }
 .nav-item.active {
   color: var(--color-accent);
 }

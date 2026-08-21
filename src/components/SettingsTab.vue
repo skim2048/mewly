@@ -123,17 +123,17 @@ const group2 = computed(() => [
   gap: 3px;
 }
 .profile-name {
-  font-size: 15px;
+  font-size: var(--font-title);
   font-weight: 700;
   color: var(--color-text);
 }
 .profile-sub {
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .caret {
   color: var(--color-neutral-600);
-  font-size: 14px;
+  font-size: var(--font-body);
 }
 
 .row-card {
@@ -153,7 +153,7 @@ const group2 = computed(() => [
   cursor: pointer;
   font-family: inherit;
   color: var(--color-text);
-  font-size: 13.8px;
+  font-size: var(--font-body);
 }
 .row-item.divided { border-bottom: 1px solid var(--color-divider); }
 /* 설정 리스트 행 프레스 피드백 — 네이티브 설정 화면의 표준 감각 */
@@ -167,8 +167,8 @@ const group2 = computed(() => [
   text-align: left;
 }
 .row-value {
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
   white-space: nowrap;
 }
 </style>

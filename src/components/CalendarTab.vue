@@ -173,7 +173,7 @@ const daySchedules = computed(() => {
   cursor: pointer;
 }
 .month-label {
-  font-size: 15px;
+  font-size: var(--font-title);
   font-weight: 700;
 }
 
@@ -182,8 +182,8 @@ const daySchedules = computed(() => {
   margin: 12px 16px 0;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  font-size: 10.8px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   text-align: center;
 }
 
@@ -214,7 +214,7 @@ const daySchedules = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: var(--font-body);
   color: var(--color-text);
   box-sizing: border-box;
 }
@@ -252,7 +252,7 @@ const daySchedules = computed(() => {
   padding: 2px 0;
 }
 .day-label {
-  font-size: 13px;
+  font-size: var(--font-body);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -260,7 +260,7 @@ const daySchedules = computed(() => {
   border: none;
   background: none;
   color: var(--color-accent);
-  font-size: 11.8px;
+  font-size: var(--font-label);
   cursor: pointer;
   font-family: inherit;
   padding: 4px;
@@ -284,7 +284,7 @@ const daySchedules = computed(() => {
 .sched-time {
   flex: none;
   width: 48px;
-  font-size: 12px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 .sched-time.next {
@@ -293,13 +293,13 @@ const daySchedules = computed(() => {
 }
 .sched-title {
   flex: 1;
-  font-size: 13.5px;
+  font-size: var(--font-body);
   color: var(--color-text);
 }
 .sched-meta {
   flex: none;
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   white-space: nowrap;
 }
 .sched-add {
@@ -309,7 +309,7 @@ const daySchedules = computed(() => {
   border: 1px dashed var(--color-neutral-700);
   background: none;
   color: var(--color-neutral-500);
-  font-size: 12.8px;
+  font-size: var(--font-body);
   cursor: pointer;
   font-family: inherit;
 }

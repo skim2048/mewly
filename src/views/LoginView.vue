@@ -129,12 +129,12 @@ async function handleLogin() {
   line-height: 1.2;
 }
 .login-sub {
-  font-size: 13.3px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
   line-height: 1.5;
 }
 .login-notice {
-  font-size: 13px;
+  font-size: var(--font-body);
   line-height: 1.45;
 }
 
@@ -153,7 +153,7 @@ async function handleLogin() {
   border: none;
   padding: 0;
   color: var(--color-neutral-300);
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   cursor: pointer;
 }
@@ -162,7 +162,7 @@ async function handleLogin() {
   border-radius: 5px;
   border: 1px solid var(--color-neutral-700);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
+  font-size: var(--font-body);
   color: var(--color-bg);
   box-sizing: border-box;
 }
@@ -179,7 +179,7 @@ async function handleLogin() {
   border: none;
   background: var(--color-accent);
   color: var(--color-bg);
-  font-size: 16px;
+  font-size: var(--font-title);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;

@@ -61,7 +61,7 @@ async function save() {
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
   align-items: flex-start;
-  font-size: 12.3px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }
@@ -75,7 +75,7 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 .field input {
@@ -86,7 +86,7 @@ async function save() {
   border: 1px solid var(--color-neutral-800);
   background: var(--color-neutral-900);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-family: inherit;
   padding: 0 12px;
   outline: none;
@@ -103,7 +103,7 @@ async function save() {
   border: 1px solid var(--color-neutral-800);
   background: var(--color-neutral-900);
   color: var(--color-text);
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   cursor: pointer;
 }

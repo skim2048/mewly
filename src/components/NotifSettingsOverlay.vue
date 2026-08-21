@@ -70,7 +70,7 @@ const abnOn = computed({
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
   align-items: flex-start;
-  font-size: 12.3px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }
@@ -103,17 +103,17 @@ const abnOn = computed({
   gap: 3px;
 }
 .switch-title {
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 700;
 }
 .switch-sub {
-  font-size: 11.5px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 .switch-foot {
   display: flex;
   gap: 5px;
-  font-size: 11.5px;
+  font-size: var(--font-label);
   line-height: 1.6;
   color: var(--color-neutral-400);
   margin-top: 4px;

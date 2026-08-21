@@ -68,7 +68,7 @@ function onBackdrop(e) {
 }
 .sheet-title {
   flex: 1;
-  font-size: 17.5px;
+  font-size: var(--font-heading);
   font-weight: 700;
 }
 .sheet-x {

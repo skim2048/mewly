@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 브랜드 토큰: src/assets/global.css의 color-bg / color-accent CSS 변수와 일치해야 한다 -->
 <resources>
-    <color name="colorPrimary">#42b883</color>
-    <color name="colorPrimaryDark">#1e1e20</color>
-    <color name="colorAccent">#42b883</color>
-    <color name="mewlyBg">#1e1e20</color>
+    <color name="colorPrimary">#ffb38a</color>
+    <color name="colorPrimaryDark">#181513</color>
+    <color name="colorAccent">#ffb38a</color>
+    <color name="mewlyBg">#181513</color>
 </resources>

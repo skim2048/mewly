@@ -110,7 +110,7 @@ async function apply() {
   border-radius: 10px;
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
 }
@@ -119,9 +119,9 @@ async function apply() {
 }
 .panel-note {
   margin: -4px 0 0;
-  font-size: 11.8px;
+  font-size: var(--font-label);
   line-height: 1.5;
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-400);
 }
 .label-block {
   display: flex;
@@ -132,9 +132,9 @@ async function apply() {
   background: var(--color-bg);
 }
 .label-title {
-  font-size: 11.5px;
+  font-size: var(--font-label);
   font-weight: 700;
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-400);
 }
 .label-row {
   display: flex;
@@ -144,16 +144,16 @@ async function apply() {
 .label-name {
   flex: none;
   width: 52px;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   font-weight: 600;
 }
 .label-syns {
-  font-size: 11.8px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   word-break: break-all;
 }
 .panel-status {
-  font-size: 12px;
+  font-size: var(--font-label);
 }
 .panel-status.ok { color: var(--color-accent); }
 .panel-status.err { color: var(--color-neutral-300); }

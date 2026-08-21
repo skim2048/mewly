@@ -150,7 +150,7 @@ onBeforeUnmount(() => { talking.value = false })
   border-radius: 6px;
   background: var(--color-neutral-800);
   color: var(--color-neutral-400);
-  font-size: 11px;
+  font-size: var(--font-caption);
   font-weight: 700;
 }
 .mic-chip.on {
@@ -174,12 +174,12 @@ onBeforeUnmount(() => { talking.value = false })
   justify-content: space-between;
 }
 .vol-label {
-  font-size: 12.3px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
 }
 .vol-value {
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 .vol-row {

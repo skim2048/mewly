@@ -359,7 +359,7 @@ function onKeydown(e) {
 .dur-chip {
   position: absolute;
   right: 8px; bottom: 8px;
-  font-size: 10.5px;
+  font-size: var(--font-caption);
   color: #e9e9ed;
   background: rgba(0, 0, 0, 0.5);
   padding: 2px 6px;
@@ -369,7 +369,7 @@ function onKeydown(e) {
 .fs-title {
   position: absolute;
   left: 16px; top: 12px;
-  font-size: 12px;
+  font-size: var(--font-label);
   color: #e9e9ed;
   background: rgba(0, 0, 0, 0.45);
   padding: 3px 8px;
@@ -382,7 +382,7 @@ function onKeydown(e) {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--font-caption);
   color: rgba(233, 233, 237, 0.75);
   font-variant-numeric: tabular-nums;
 }
@@ -393,8 +393,8 @@ function onKeydown(e) {
   align-items: center;
   gap: 9px;
   padding: 10px 14px 0;
-  font-size: 10.8px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
   cursor: default;
 }
@@ -414,17 +414,17 @@ function onKeydown(e) {
 }
 .info-title {
   flex: 1;
-  font-size: 12.3px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 .info-close {
   flex: none;
-  font-size: 11.3px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
 }
 .info-desc {
-  font-size: 13px;
+  font-size: var(--font-body);
   line-height: 1.5;
   color: var(--color-text);
 }

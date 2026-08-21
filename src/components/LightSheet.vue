@@ -236,7 +236,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   border-radius: 6px;
   background: var(--color-neutral-800);
   color: var(--color-neutral-400);
-  font-size: 11px;
+  font-size: var(--font-caption);
   font-weight: 700;
 }
 .light-chip.on {
@@ -281,8 +281,8 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   background: var(--color-neutral-700);
 }
 .tick-num {
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 
@@ -299,14 +299,14 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   padding: 9px 12px;
   border-radius: 10px;
   background: var(--color-neutral-800);
-  font-size: 10.8px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
 }
 .night-select select {
   border: none;
   background: none;
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--font-body);
   font-weight: 700;
   font-family: inherit;
   outline: none;
@@ -320,7 +320,7 @@ const hourOptions = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2
   border: 1px solid var(--color-accent-700);
   background: var(--color-accent-900);
   color: var(--color-accent);
-  font-size: 11.8px;
+  font-size: var(--font-label);
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;

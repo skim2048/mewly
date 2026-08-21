@@ -77,11 +77,11 @@ const timeLabel = computed(() => {
   box-shadow: var(--shadow-lg);
 }
 .session-title {
-  font-size: 16.5px;
+  font-size: var(--font-heading);
   font-weight: 800;
 }
 .session-copy {
-  font-size: 13px;
+  font-size: var(--font-body);
   line-height: 1.6;
   color: var(--color-neutral-300);
 }
@@ -96,7 +96,7 @@ const timeLabel = computed(() => {
   border: none;
   background: var(--color-neutral-900);
   color: var(--color-neutral-300);
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   cursor: pointer;
 }

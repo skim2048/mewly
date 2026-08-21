@@ -512,7 +512,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
 }
 .ptz-gauge input { width: 100%; min-width: 0; }
@@ -565,7 +565,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   border: 1px solid var(--color-accent-700);
   background: var(--color-accent-900);
   color: var(--color-accent);
-  font-size: 11.5px;
+  font-size: var(--font-label);
   font-weight: 700;
   letter-spacing: 0.04em;
   font-family: inherit;
@@ -590,7 +590,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   margin-top: -6px;
 }
 .ptz-row-label {
-  font-size: 12.5px;
+  font-size: var(--font-body);
   color: var(--color-neutral-400);
 }
 /* 우측 열 전체 폭을 두 버튼이 절반씩 차지한다 — 줌 슬라이더와 끝선 정렬 */
@@ -608,7 +608,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   border: 1px solid var(--color-neutral-800);
   background: transparent;
   color: var(--color-neutral-400);
-  font-size: 12.3px;
+  font-size: var(--font-label);
   font-family: inherit;
   cursor: pointer;
 }
@@ -641,7 +641,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   background: none;
   padding: 0;
   color: var(--color-accent-300);
-  font-size: 11.8px;
+  font-size: var(--font-label);
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
@@ -686,7 +686,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-variant-numeric: tabular-nums;
 }
 .slot-top i {
@@ -694,12 +694,12 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   color: var(--color-accent-300);
 }
 .slot-val {
-  font-size: 10.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
   font-variant-numeric: tabular-nums;
 }
 .ptz-hint {
-  font-size: 11.8px;
+  font-size: var(--font-label);
   color: var(--color-neutral-400);
   line-height: 1.45;
   text-align: right;
@@ -708,8 +708,8 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
 
 /* — 자동 순찰 세부 — */
 .patrol-label {
-  font-size: 11px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-caption);
+  color: var(--color-neutral-400);
 }
 .patrol-grid {
   display: grid;
@@ -722,7 +722,7 @@ onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
   border: 1px solid transparent;
   background: var(--color-neutral-800);
   color: var(--color-neutral-300);
-  font-size: 12.3px;
+  font-size: var(--font-label);
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;

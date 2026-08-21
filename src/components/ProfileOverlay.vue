@@ -105,7 +105,7 @@ function pickBreed(value) {
   border: none;
   background: var(--color-accent-900);
   color: var(--color-text);
-  font-size: 12.8px;
+  font-size: var(--font-body);
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
@@ -132,7 +132,7 @@ function pickBreed(value) {
   border: none;
   background: none;
   color: var(--color-text);
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   outline: none;
 }
@@ -154,13 +154,13 @@ function pickBreed(value) {
   gap: 7px;
 }
 .breed-none-text {
-  font-size: 13px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }
 .breed-none-hint {
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .breed-etc {
   align-self: flex-start;
@@ -171,7 +171,7 @@ function pickBreed(value) {
   border: none;
   background: var(--color-neutral-800);
   color: var(--color-text);
-  font-size: 12.5px;
+  font-size: var(--font-body);
   cursor: pointer;
   font-family: inherit;
 }
@@ -184,7 +184,7 @@ function pickBreed(value) {
   border: none;
   background: none;
   color: var(--color-text);
-  font-size: 13.8px;
+  font-size: var(--font-body);
   font-family: inherit;
   cursor: pointer;
   padding: 0 4px;
@@ -236,12 +236,12 @@ function pickBreed(value) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--font-body);
   color: var(--color-neutral-300);
 }
 .photo-hint {
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
   text-align: center;
 }
 
@@ -249,8 +249,8 @@ function pickBreed(value) {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .field input {
   height: 48px;
@@ -259,7 +259,7 @@ function pickBreed(value) {
   background: var(--color-neutral-900);
   color: var(--color-text);
   padding: 0 14px;
-  font-size: 14.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   outline: none;
 }
@@ -277,11 +277,11 @@ function pickBreed(value) {
 }
 .field-row.static { cursor: default; }
 .field-value {
-  font-size: 14.5px;
+  font-size: var(--font-body);
   color: var(--color-text);
 }
 .field-note {
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 </style>

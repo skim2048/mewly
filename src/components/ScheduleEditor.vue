@@ -182,7 +182,7 @@ function remove() {
   border: none;
   background: var(--color-accent-900);
   color: var(--color-text);
-  font-size: 12.8px;
+  font-size: var(--font-body);
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
@@ -198,8 +198,8 @@ function remove() {
   gap: 18px;
 }
 .date-label {
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 
 .notice-box {
@@ -210,7 +210,7 @@ function remove() {
   background: var(--color-neutral-900);
   border-left: 2px solid var(--color-accent);
   align-items: flex-start;
-  font-size: 12px;
+  font-size: var(--font-body);
   line-height: 1.55;
   color: var(--color-neutral-300);
 }
@@ -228,8 +228,8 @@ function remove() {
   gap: 10px;
 }
 .field-label {
-  font-size: 12px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .chip-row {
   display: flex;
@@ -243,7 +243,7 @@ function remove() {
   border: 1px solid transparent;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
-  font-size: 12.8px;
+  font-size: var(--font-body);
   cursor: pointer;
   font-family: inherit;
   white-space: nowrap;
@@ -266,7 +266,7 @@ function remove() {
   background: var(--color-neutral-900);
   color: var(--color-text);
   padding: 0 13px;
-  font-size: 13.5px;
+  font-size: var(--font-body);
   font-family: inherit;
   outline: none;
 }
@@ -289,15 +289,15 @@ function remove() {
   padding: 11px 13px;
   border-radius: 10px;
   background: var(--color-neutral-900);
-  font-size: 11.5px;
-  color: var(--color-neutral-500);
+  font-size: var(--font-label);
+  color: var(--color-neutral-400);
 }
 .select-box.err { outline: 1px solid var(--color-accent); }
 .select-box select {
   border: none;
   background: none;
   color: var(--color-text);
-  font-size: 13.8px;
+  font-size: var(--font-body);
   font-weight: 700;
   font-family: inherit;
   outline: none;
@@ -308,7 +308,7 @@ function remove() {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-label);
   color: var(--color-neutral-300);
 }
 .time-err i {
@@ -322,10 +322,10 @@ function remove() {
 .delete-btn {
   height: 48px;
   border-radius: 10px;
-  border: 1px solid var(--color-accent-700);
-  background: var(--color-accent-900);
-  color: var(--color-accent);
-  font-size: 13.5px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
+  font-size: var(--font-body);
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
