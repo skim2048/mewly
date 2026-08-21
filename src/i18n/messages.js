@@ -51,12 +51,14 @@ export const messages = {
   'camera.field.onvifPort': { en: 'ONVIF port', ko: 'ONVIF 포트' },
   'camera.field.streamPath': { en: 'Stream path', ko: '스트림 경로' },
   'camera.action.save': { en: 'Save profile', ko: '프로필 저장' },
-  'camera.streaming.start': { en: 'Start streaming', ko: '스트리밍 시작' },
-  'camera.streaming.stop': { en: 'Stop streaming', ko: '스트리밍 정지' },
-  'camera.savedMsg': { en: 'Profile saved.', ko: '프로필을 저장했습니다.' },
-  'camera.streaming.pending': {
-    en: 'The saved profile is not applied to the running stream yet. It takes effect on the next connection.',
-    ko: '저장한 프로필이 재생 중인 스트림에 아직 반영되지 않았습니다. 다시 연결할 때 적용됩니다.',
+  // @claude 명명 체계(사용자 확정): 전역 게시 제어 = 「카메라 켜기/끄기」,
+  // @claude 이 기기의 시청 세션 = 「라이브 보기/라이브 종료」 — 효과의 범위를
+  // @claude 어휘가 드러내도록 구분한다.
+  'camera.streaming.start': { en: 'Turn camera on', ko: '카메라 켜기' },
+  'camera.streaming.stop': { en: 'Turn camera off', ko: '카메라 끄기' },
+  'camera.savedMsg': {
+    en: 'Profile saved and applied to the camera.',
+    ko: '프로필을 저장하고 카메라에 적용했습니다.',
   },
   'camera.streaming.failed': { en: 'Request failed', ko: '요청 실패' },
   'camera.error.loadStatus': {
@@ -121,8 +123,6 @@ export const messages = {
   'prompt.status.unknown': { en: 'Unknown', ko: '알 수 없음' },
   'prompt.status.failed': { en: 'Apply failed', ko: '적용 실패' },
 
-  'clips.preset.today': { en: 'Today', ko: '오늘' },
-  'clips.preset.yesterday': { en: 'Yesterday', ko: '어제' },
 
   'session.title': { en: 'Session expiring', ko: '세션 만료 임박' },
   'session.copy': {
@@ -161,7 +161,7 @@ export const messages = {
     en: 'No saved position in this slot.',
     ko: '저장된 위치가 없습니다.',
   },
-  'live.disconnect': { en: 'Disconnect', ko: '연결 해제' },
+  'live.disconnect': { en: 'End live', ko: '라이브 종료' },
   'live.fullscreen.enter': { en: 'Full screen', ko: '전체 화면' },
   'live.fullscreen.exit': { en: 'Exit full screen', ko: '전체 화면 종료' },
 
@@ -190,7 +190,6 @@ export const messages = {
 
   'tab.home': { en: 'Home', ko: '홈' },
   'tab.schedule': { en: 'Schedule', ko: '일정' },
-  'tab.records': { en: 'Records', ko: '기록' },
   'tab.analysis': { en: 'Analysis', ko: '분석' },
   'tab.settings': { en: 'Settings', ko: '설정' },
 
@@ -203,7 +202,37 @@ export const messages = {
   'ana.empty': { en: 'No events detected on this day', ko: '이 날은 감지된 이벤트가 없습니다' },
   'ana.clips': { en: 'Clips', ko: '클립' },
   'ana.noClips': { en: 'No clips match the filter', ko: '조건에 맞는 클립이 없습니다' },
+  'ana.sel.select': { en: 'Select', ko: '선택' },
+  'ana.sel.all': { en: 'Select all', ko: '전체 선택' },
+  'ana.sel.none': { en: 'Deselect all', ko: '전체 해제' },
+  'ana.sel.count': { en: '{count} selected', ko: '{count}개 선택됨' },
   'ana.hourRange': { en: '{from}–{to}h', ko: '{from}–{to}시' },
+
+  // 분석 탭 — 상태 점유율(3층 /summary 소비)
+  'ana.state.lying': { en: 'Lying', ko: '눕기' },
+  'ana.state.sitting': { en: 'Sitting', ko: '앉기' },
+  'ana.state.standing': { en: 'Standing', ko: '서기' },
+  'ana.state.unlabeled': { en: 'Unlabeled', ko: '무라벨' },
+  'ana.rhythm.title': { en: 'Daily rhythm', ko: '오늘의 리듬' },
+  'ana.rhythm.collecting': { en: 'Collecting baseline ({n}/{min} days)', ko: '기준선 수집 중 ({n}/{min}일)' },
+  'ana.rhythm.ok': { en: 'Nothing unusual', ko: '이상 없음' },
+  'ana.rhythm.dev.high': { en: '{label} above the usual range', ko: '{label} 시간이 평소보다 많습니다' },
+  'ana.rhythm.dev.low': { en: '{label} below the usual range', ko: '{label} 시간이 평소보다 적습니다' },
+  'ana.rhythm.baseline': { en: 'usual {m}%', ko: '평소 {m}%' },
+  'ana.rhythm.noData': { en: 'No inference data for this day', ko: '이 날의 추론 데이터가 없습니다' },
+  'ana.timeline.title': { en: 'State distribution', ko: '상태 분포' },
+
+  // 설정 — 분석(어휘·프리셋 주입)
+  'set.rowAnalysis': { en: 'Analysis', ko: '분석' },
+  'ana.panel.dayRange': { en: 'Daytime range', ko: '주간 구간' },
+  'ana.panel.dayNote': {
+    en: 'Outside this range the night prompt applies. Adjust to match the pet house lighting.',
+    ko: '이 구간 밖에는 야간 프롬프트를 적용합니다. 펫하우스의 조도에 맞춰 조정하십시오.',
+  },
+  'ana.panel.labels': { en: 'State vocabulary', ko: '상태 어휘' },
+  'ana.panel.applied': { en: 'Saved and applied', ko: '저장하여 적용했습니다' },
+  'ana.panel.error': { en: 'Apply failed', ko: '적용 실패' },
+  'ana.panel.invalid': { en: 'Start and end must differ', ko: '시작과 종료 시각이 같을 수 없습니다' },
 
   'login.subtitle': { en: 'Connect to the Babycat backend.', ko: 'Babycat 백엔드에 연결합니다.' },
 
@@ -280,31 +309,21 @@ export const messages = {
   'sched.errCat': { en: 'Pick a category before saving.', ko: '카테고리를 선택해야 저장할 수 있습니다.' },
   'sched.errName': { en: 'Enter a schedule name before saving.', ko: '일정 이름을 입력해야 저장할 수 있습니다.' },
   'sched.add': { en: '+ Add schedule', ko: '+ 일정 추가' },
-  'sched.dayRecords': { en: "View this day's records", ko: '이날의 기록 보기' },
+  'sched.dayRecords': { en: "View this day's analysis", ko: '이날의 분석 보기' },
   'sched.done': { en: 'Done', ko: '마침' },
   'sched.alarmWord': { en: 'Alarm', ko: '알람' },
 
-  'home.tapConnect': { en: 'Tap to connect', ko: '탭하여 연결' },
-  'home.connCancel': { en: 'Connecting — tap to cancel', ko: '연결 중 — 탭하여 취소' },
+  'home.tapConnect': { en: 'Tap to view live', ko: '탭하여 라이브 보기' },
+  'home.connCancel': { en: 'Starting live — tap to cancel', ko: '라이브 준비 중 — 탭하여 취소' },
   'home.noCam': { en: 'No camera profile registered', ko: '등록된 카메라 프로필이 없습니다' },
   'home.noCamHint': { en: 'Register one in Settings → Camera', ko: '설정 → 카메라 설정에서 등록하세요' },
+  'home.camOff': { en: 'The camera is off', ko: '카메라가 꺼져 있습니다' },
+  'home.camOffHint': { en: 'Turn it on in Settings → Camera', ko: '설정 → 카메라 설정에서 켜세요' },
   'home.noLogs': { en: 'No logs.', ko: '로그가 없습니다.' },
   'dev.light': { en: 'Light', ko: '조명' },
   'dev.temp': { en: 'Temp', ko: '온도' },
   'dev.mic': { en: 'Mic', ko: '마이크' },
 
-  'rec.searchPh': { en: 'Search', ko: '검색' },
-  'rec.period.day': { en: 'Day', ko: '일' },
-  'rec.period.week': { en: 'Week', ko: '주' },
-  'rec.period.month': { en: 'Month', ko: '월' },
-  'rec.period.quarter': { en: 'Quarter', ko: '분기' },
-  'rec.period.year': { en: 'Year', ko: '연도' },
-  'rec.select': { en: 'Select', ko: '선택' },
-  'rec.selectAll': { en: 'Select all', ko: '전체 선택' },
-  'rec.deselectAll': { en: 'Deselect all', ko: '전체 해제' },
-  'rec.selected': { en: '{count} selected', ko: '{count}개 선택됨' },
-  'rec.empty': { en: 'No records', ko: '기록이 없습니다' },
-  'rec.noMatch': { en: 'No records match “{q}”', ko: '‘{q}’에 맞는 기록이 없습니다' },
   'rec.tapClose': { en: 'Tap to close', ko: '탭하여 닫기' },
 
   'mic.idle': { en: 'Idle', ko: '대기 중' },

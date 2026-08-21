@@ -24,8 +24,22 @@ const local = reactive({
 })
 
 const passwordLoaded = ref(false)
-// 시안: 저장 후 안내 박스(재생 중이면 「다음 연결 때 적용」, 아니면 저장 완료)
+// 저장 후 안내 박스 — 저장이 곧 적용이므로(자동 연계) 단일 문구만 쓴다
 const saved = ref(false)
+
+// @claude dirty 판정용 원본 스냅샷 — 변경 없는 저장에 카메라 재시작(영상 순단
+// @claude + 분석·녹화 중단)을 걸지 않기 위한 기준값.
+const origin = reactive({})
+
+function snapshotOrigin() {
+  Object.assign(origin, {
+    ip: local.ip,
+    rtsp_port: local.rtsp_port,
+    username: local.username,
+    stream_path: local.stream_path,
+    onvif_port: local.onvif_port,
+  })
+}
 
 onMounted(() => {
   Object.assign(local, {
@@ -41,6 +55,7 @@ onMounted(() => {
   if (config.password_set) {
     passwordLoaded.value = true
   }
+  snapshotOrigin()
 })
 
 function onPasswordFocus() {
@@ -51,16 +66,34 @@ function onPasswordFocus() {
 }
 
 async function handleSave() {
-  // @claude Copy local edits into the shared config, then save. The panel
-  // @claude stays open — closing hides the profile-pending notice, and only
-  // @claude the close/cancel buttons should dismiss it.
+  // @claude 저장=적용 자동 연계(사용자 확정): 저장은 카메라가 켜진 상태로
+  // @claude 귀결시킨다 — 꺼져 있으면 켜고, 켜진 채 프로필이 바뀌었으면 끄고
+  // @claude 다시 켠다. 변경 없는 저장은 재시작하지 않는다(무의미한 순단 방지).
+  // @claude 백엔드의 저장·적용 분리 계약(FR-048)은 유지된다 — 명시적 호출의
+  // @claude 순차 조합일 뿐 백엔드에 숨은 동작을 요구하지 않는다.
+  saved.value = false
+  const dirty =
+    local.ip !== origin.ip ||
+    local.rtsp_port !== origin.rtsp_port ||
+    local.username !== origin.username ||
+    local.stream_path !== origin.stream_path ||
+    local.onvif_port !== origin.onvif_port ||
+    (!passwordLoaded.value && local.password !== '')
   Object.assign(config, local)
   await save()
-  if (!status.value) saved.value = true
+  if (status.value) return
+  if (!state.streaming_active) {
+    await requestStreaming(APP_ENDPOINTS.streamingStart)
+  } else if (dirty) {
+    await requestStreaming(APP_ENDPOINTS.streamingStop)
+    await requestStreaming(APP_ENDPOINTS.streamingStart)
+  }
+  if (!streamStatus.value) saved.value = true
+  snapshotOrigin()
 }
 
-// @claude FR-048/FR-049: registration never connects the source; these
-// @claude explicit actions start and stop live streaming.
+// @claude FR-048/FR-049: registration never connects the source; the client
+// @claude composes explicit start/stop calls (auto-apply above, toggle below).
 const streamingBusy = ref(false)
 const streamStatus = ref('')
 
@@ -89,10 +122,9 @@ function toggleStreaming() {
 <template>
   <div class="form-col">
     <div v-if="status" class="notice-box"><i class="ph ph-warning-circle"></i><span>{{ status }}</span></div>
-    <!-- 시안: 저장 후 안내 — 재생 중이면 pending, 아니면 저장 완료 -->
     <div v-if="saved" class="notice-box">
       <i class="ph ph-info"></i>
-      <span>{{ state.profile_pending ? t('camera.streaming.pending') : t('camera.savedMsg') }}</span>
+      <span>{{ t('camera.savedMsg') }}</span>
     </div>
     <div v-if="streamStatus" class="notice-box"><i class="ph ph-warning-circle"></i><span>{{ streamStatus }}</span></div>
 

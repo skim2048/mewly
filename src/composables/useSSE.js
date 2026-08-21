@@ -46,6 +46,10 @@ const state = reactive({
   // @claude Prompt
   inference_prompt: '',
   trigger_keywords: '',
+  // @claude 2층: 클라이언트 주입 라벨 어휘·시간 구간 프리셋의 현재 적용값
+  label_groups: {},
+  presets: [],
+  active_preset: '',
   // @claude Clips
   clip_count: 0,
   segment_recorder_state: 'disabled',
@@ -98,6 +102,9 @@ function resetState() {
   state.ptz_patrol = null
   state.inference_prompt = ''
   state.trigger_keywords = ''
+  state.label_groups = {}
+  state.presets = []
+  state.active_preset = ''
   state.clip_count = 0
   state.segment_recorder_state = 'disabled'
   state.segment_recorder_error = ''

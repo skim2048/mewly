@@ -11,8 +11,8 @@ import ModalFrame from '../components/ModalFrame.vue'
 import HomeTab from '../components/HomeTab.vue'
 
 const CalendarTab = defineAsyncComponent(() => import('../components/CalendarTab.vue'))
-const RecordsTab = defineAsyncComponent(() => import('../components/RecordsTab.vue'))
 const AnalysisTab = defineAsyncComponent(() => import('../components/AnalysisTab.vue'))
+const AnalysisPanel = defineAsyncComponent(() => import('../components/AnalysisPanel.vue'))
 const SettingsTab = defineAsyncComponent(() => import('../components/SettingsTab.vue'))
 const NotificationsOverlay = defineAsyncComponent(() => import('../components/NotificationsOverlay.vue'))
 const ProfileOverlay = defineAsyncComponent(() => import('../components/ProfileOverlay.vue'))
@@ -82,32 +82,30 @@ const offBack = onBackButton(() => {
 })
 onUnmounted(offBack)
 
-// 알림 항목 탭: 이상행동 → 기록, 일정 알람 → 일정 (시안 동작)
+// 알림 항목 탭: 이상행동 → 분석, 일정 알람 → 일정 (기록 탭 제거로 분석이 승계)
 function onNotifOpen(kind) {
   overlay.value = null
-  activeTab.value = kind === 'abn' ? 'rec' : 'cal'
+  activeTab.value = kind === 'abn' ? 'ana' : 'cal'
 }
 
 function openScheduleEditor({ id = null, date }) {
   schedEdit.value = { id, date }
 }
 
-// 기록 탭 진입. 달력에서 날짜와 함께 요청되면 해당 일자 필터로 연다.
+// 분석 탭 진입. 달력에서 날짜와 함께 요청되면 해당 일자로 연다.
 function goRecords(date) {
   if (date) recordsDate.value = { date }
-  activeTab.value = 'rec'
+  activeTab.value = 'ana'
 }
 
 const tabs = [
   { key: 'home', icon: 'house', label: () => t('tab.home') },
   { key: 'cal', icon: 'calendar-blank', label: () => t('tab.schedule') },
-  { key: 'rec', icon: 'clock-counter-clockwise', label: () => t('tab.records') },
   { key: 'ana', icon: 'chart-bar', label: () => t('tab.analysis') },
   { key: 'set', icon: 'gear', label: () => t('tab.settings') },
 ]
 const tabTitle = computed(() => ({
   cal: t('tab.schedule'),
-  rec: t('tab.records'),
   ana: t('tab.analysis'),
   set: t('tab.settings'),
 }[activeTab.value] || ''))
@@ -125,6 +123,7 @@ const sessionRemainingText = computed(() => {
 const modalTitle = computed(() => ({
   camera: t('set.rowCam'),
   prompt: t('set.rowPrompt'),
+  analysis: t('set.rowAnalysis'),
   resources: t('set.rowRes'),
   password: t('dashboard.menu.password'),
   server: t('set.rowServer'),
@@ -182,8 +181,7 @@ onMounted(loadCamera)
           @edit-schedule="openScheduleEditor"
           @go-records="goRecords"
         />
-        <RecordsTab v-else-if="activeTab === 'rec'" :date-request="recordsDate" />
-        <AnalysisTab v-else-if="activeTab === 'ana'" />
+        <AnalysisTab v-else-if="activeTab === 'ana'" :date-request="recordsDate" />
         <SettingsTab
           v-else
           @open-modal="modal = $event"
@@ -251,6 +249,7 @@ onMounted(loadCamera)
         <CameraPanel @close="modal = null" />
       </ModalFrame>
       <PromptSheet v-else-if="modal === 'prompt'" @close="modal = null" />
+      <AnalysisPanel v-else-if="modal === 'analysis'" @close="modal = null" />
       <ResourcesSheet v-else-if="modal === 'resources'" @close="modal = null" />
       <ModalFrame
         v-else-if="modal === 'password'"

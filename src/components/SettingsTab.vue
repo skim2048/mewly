@@ -23,6 +23,7 @@ const group1 = computed(() => [
   { key: 'notif', icon: 'ph ph-bell', label: t('notif.title'), onClick: () => emit('open-overlay', 'notifSettings') },
   { key: 'camera', icon: 'ph ph-video-camera', label: t('set.rowCam'), onClick: () => emit('open-modal', 'camera') },
   { key: 'prompt', icon: 'ph ph-lightbulb', label: t('set.rowPrompt'), onClick: () => emit('open-modal', 'prompt') },
+  { key: 'analysis', icon: 'ph ph-chart-bar', label: t('set.rowAnalysis'), onClick: () => emit('open-modal', 'analysis') },
   { key: 'resources', icon: 'ph ph-cpu', label: t('set.rowRes'), onClick: () => emit('open-modal', 'resources') },
   { key: 'lang', icon: 'ph ph-translate', label: t('set.language'), value: langValue.value, onClick: toggleLocale },
   { key: 'theme', icon: 'ph ph-moon', label: t('set.theme'), value: themeValue.value, onClick: toggleTheme },

@@ -61,6 +61,10 @@ export const API_ENDPOINTS = {
   get eventHistory() {
     return getApiUrl('/events')
   },
+  // recorder 집계(3층) 조회 — 버킷별 라벨 발생 수와 분모(total)
+  get summary() {
+    return getApiUrl('/summary')
+  },
   clipFile(name) {
     return getApiUrl(`/clips/${encodeURIComponent(name)}`)
   },
@@ -92,6 +96,10 @@ export const APP_ENDPOINTS = {
   },
   get mjpeg() {
     return getApiUrl('/stream')
+  },
+  // analyzer 라벨 어휘·시간 구간 프리셋 주입(2층)
+  get presets() {
+    return getApiUrl('/presets')
   },
   get vlmSwitch() {
     return getApiUrl('/vlm/switch')

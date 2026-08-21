@@ -564,6 +564,13 @@ onBeforeUnmount(() => {
             <span class="overlay-hint">{{ t('home.noCamHint') }}</span>
           </div>
 
+          <!-- 카메라 꺼짐(전역 게시 중단): 라이브 보기가 성립하지 않으므로 안내만 -->
+          <div v-else-if="stopped && !sseState.streaming_active" class="video-overlay static">
+            <i class="ph ph-video-camera-slash empty-icon"></i>
+            <span class="overlay-text">{{ t('home.camOff') }}</span>
+            <span class="overlay-hint">{{ t('home.camOffHint') }}</span>
+          </div>
+
           <button v-else-if="stopped" class="video-overlay" @click="handleConnect">
             <span class="play-ring"><i class="ph-fill ph-play"></i></span>
             <span class="overlay-text">{{ t('home.tapConnect') }}</span>
