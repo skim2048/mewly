@@ -12,8 +12,9 @@ import {
   fetchBaseline,
   judgeRhythm,
   BASELINE_MIN_DAYS,
+  METRIC_KEYS,
 } from '../composables/useInferenceSummary.js'
-import { STATE_LABELS } from '../composables/analysisConfig.js'
+import { STATE_LABELS, isDayHour, dayRange } from '../composables/analysisConfig.js'
 import ClipPlayerModal from './ClipPlayerModal.vue'
 
 // @claude 분석 탭 — 기록+분석 병합(사용자 확정): 하루 요약(키워드별 24시간
@@ -106,15 +107,16 @@ async function loadStates() {
   } catch {}
 }
 
-// 리듬 카드 행: 라벨별 오늘 점유율 + 기준선 평균
+// 리듬 카드 행: 주간 3종 + 야간 뒤척임(비누움) 지표와 기준선 평균 (회신서 §7.4.1)
 const stateRows = computed(() => {
   const st = dayStates.value
   if (!st) return []
-  const rows = STATE_LABELS.map((label) => ({
-    key: label,
-    name: t(`ana.state.${label}`),
-    share: st.shares[label] ?? 0,
-    mean: baseline.value?.days ? baseline.value.mean[label] : null,
+  const bl = baseline.value
+  const rows = METRIC_KEYS.map((key) => ({
+    key,
+    name: t(`ana.state.${key}`),
+    share: st.metrics[key],
+    mean: (bl?.n?.[key] ?? 0) > 0 ? bl.mean[key] : null,
   }))
   // @claude 무라벨은 부재·미추출 혼합의 참고 지표(회신서 §7.4) — 기준선 비교 없음
   rows.push({ key: 'unlabeled', name: t('ana.state.unlabeled'), share: st.unlabeled, mean: null })
@@ -124,19 +126,25 @@ const stateRows = computed(() => {
 // 판정: null=기준선 부족, []=이상 없음, [{label, direction}]=편차
 const rhythm = computed(() => {
   if (!dayStates.value?.total) return null
-  return judgeRhythm(dayStates.value.shares, baseline.value)
+  return judgeRhythm(dayStates.value.metrics, baseline.value)
 })
 
-// 타임라인 컬럼: 시간대별 상태 구성비 (스택 세그먼트, 위에서부터 무라벨→서기→앉기→눕기)
+// 타임라인 컬럼: 시간대별 상태 구성비 스택. 야간 시간대는 누움/비누움 2단계로
+// 병합한다(§7.4.1 — 야간 IR에서 자세 3종 세분은 신뢰도가 낮다).
 const timelineCols = computed(() => {
   const st = dayStates.value
   if (!st) return []
-  return st.hours.map((h) => {
+  return st.hours.map((h, hour) => {
     if (!h.total) return { empty: true, segs: [] }
-    const segs = STATE_LABELS.map((label) => ({
-      key: label,
-      pct: (h.counts[label] / h.total) * 100,
-    }))
+    const segs = isDayHour(hour)
+      ? STATE_LABELS.map((label) => ({
+          key: label,
+          pct: (h.counts[label] / h.total) * 100,
+        }))
+      : [
+          { key: 'lying', pct: (h.counts.lying / h.total) * 100 },
+          { key: 'restless', pct: ((h.counts.sitting + h.counts.standing) / h.total) * 100 },
+        ]
     const matched = segs.reduce((a, s) => a + s.pct, 0)
     return { empty: false, segs, unlabeledPct: Math.max(0, 100 - matched) }
   })
@@ -275,6 +283,8 @@ function reload() {
 }
 watch([targetIso, isAuthenticated], reload, { immediate: true })
 watch(clipVersion, () => { loadSummary(); loadClips() })
+// 야간 해석 경계 변경 → 지표·기준선 재계산 (fetch 시점에 경계를 반영하므로 재적재)
+watch(dayRange, loadStates, { deep: true })
 
 onBeforeUnmount(() => {
   summarySeq++
@@ -317,7 +327,7 @@ onBeforeUnmount(() => {
             <div v-for="row in stateRows" :key="row.key" class="state-row">
               <span class="state-dot" :class="`sc-${row.key}`"></span>
               <span class="state-name">{{ row.name }}</span>
-              <span class="state-share">{{ Math.round(row.share * 100) }}%</span>
+              <span class="state-share">{{ row.share === null ? '–' : `${Math.round(row.share * 100)}%` }}</span>
               <span v-if="row.mean !== null" class="state-mean">
                 {{ t('ana.rhythm.baseline', { m: Math.round(row.mean * 100) }) }}
               </span>
@@ -646,6 +656,7 @@ onBeforeUnmount(() => {
 .sc-lying { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-surface)); }
 .sc-sitting { background: color-mix(in srgb, var(--color-accent) 50%, var(--color-surface)); }
 .sc-standing { background: color-mix(in srgb, var(--color-accent) 22%, var(--color-surface)); }
+.sc-restless { background: color-mix(in srgb, var(--color-accent) 35%, var(--color-surface)); }
 .sc-unlabeled { background: var(--color-neutral-800); }
 
 .tl-strip {

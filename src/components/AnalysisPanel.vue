@@ -1,67 +1,44 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import ModalFrame from './ModalFrame.vue'
-import { useSSE } from '../composables/useSSE.js'
 import { authFetch } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
 import { toIsoDate } from '../composables/dates.js'
 import {
   LABEL_GROUPS,
-  DEFAULT_DAY_START,
-  DEFAULT_DAY_END,
-  buildPresetsPayload,
+  dayRange,
+  buildLabelsPayload,
   markPresetApplied,
 } from '../composables/analysisConfig.js'
 
-// @claude 2층 어휘·프리셋 주입 패널. 어휘와 프롬프트는 검증된 상수
-// @claude (analysisConfig.js)이고, 사용자가 조정하는 값은 주간 구간뿐이다
-// @claude (사용자 확정: 경계 시각은 휴리스틱 탐색 대상). 경계는 정각으로
-// @claude 제한한다(회신서 §7.5 — 1시간 버킷과 정렬). 저장은 어휘+프리셋
-// @claude 전체 페이로드를 /presets로 보낸다 — 부분 적용 없음(백엔드 규약).
+// @claude 분석 설정 패널. 프롬프트는 주야간 공통 단일(회신서 §7.4.1)이라
+// @claude 저장이 주입하는 것은 어휘뿐이고, 주간 구간은 백엔드가 아니라 야간
+// @claude 해석(누움/비누움 2단계)의 로컬 경계다 — 선택 즉시 지속되며(휴리스틱
+// @claude 탐색 대상), 정각 제한은 1시간 버킷과의 정렬을 위함이다.
 const emit = defineEmits(['close'])
 
-const { state } = useSSE()
 const { t } = useLocale()
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h)
 const hourText = (h) => `${String(h).padStart(2, '0')}:00`
 
-const dayStartHour = ref(Number(DEFAULT_DAY_START.slice(0, 2)))
-const dayEndHour = ref(Number(DEFAULT_DAY_END.slice(0, 2)))
-let loaded = false
-
-// SSE 스냅샷의 현재 적용값으로 1회 프리필한다 (PromptSheet와 같은 어법)
-watch(
-  () => state.presets,
-  (presets) => {
-    if (loaded || !presets?.length) return
-    const day = presets.find((p) => p.id === 'day')
-    if (day) {
-      dayStartHour.value = Number(day.start.slice(0, 2))
-      dayEndHour.value = Number(day.end.slice(0, 2))
-      loaded = true
-    }
-  },
-  { immediate: true },
-)
+const dayStartHour = computed({
+  get: () => dayRange.value.start,
+  set: (v) => { if (v !== dayRange.value.end) dayRange.value = { ...dayRange.value, start: v } },
+})
+const dayEndHour = computed({
+  get: () => dayRange.value.end,
+  set: (v) => { if (v !== dayRange.value.start) dayRange.value = { ...dayRange.value, end: v } },
+})
 
 const applied = ref(false)
 const errorNote = ref('')
-watch([dayStartHour, dayEndHour], () => {
-  applied.value = false
-  errorNote.value = ''
-})
-
-const invalid = computed(() => dayStartHour.value === dayEndHour.value)
+watch(dayRange, () => { errorNote.value = '' }, { deep: true })
 
 async function apply() {
-  if (invalid.value) {
-    errorNote.value = t('ana.panel.invalid')
-    return
-  }
   errorNote.value = ''
-  const payload = buildPresetsPayload(hourText(dayStartHour.value), hourText(dayEndHour.value))
+  const payload = buildLabelsPayload()
   try {
     const res = await authFetch(APP_ENDPOINTS.presets, {
       method: 'POST',
@@ -71,7 +48,7 @@ async function apply() {
     const data = await res.json()
     if (data.ok) {
       applied.value = true
-      // 구성이 바뀐 적용이면 기준선 단절 시점을 기록한다 (회신서 §7.5)
+      // 구성이 바뀐 적용이면 기준선 단절 시점을 기록한다 (회신서 §7.6)
       markPresetApplied(payload, toIsoDate())
     } else {
       errorNote.value = `${t('ana.panel.error')}: ${data.error || ''}`
@@ -112,7 +89,7 @@ async function apply() {
 
       <div class="form-actions">
         <button class="form-btn" @click="emit('close')">{{ t('common.cancel') }}</button>
-        <button class="form-btn primary" :disabled="invalid" @click="apply">{{ t('common.save') }}</button>
+        <button class="form-btn primary" @click="apply">{{ t('common.save') }}</button>
       </div>
     </div>
   </ModalFrame>

@@ -212,6 +212,7 @@ export const messages = {
   'ana.state.lying': { en: 'Lying', ko: '눕기' },
   'ana.state.sitting': { en: 'Sitting', ko: '앉기' },
   'ana.state.standing': { en: 'Standing', ko: '서기' },
+  'ana.state.restless': { en: 'Night restlessness', ko: '야간 뒤척임' },
   'ana.state.unlabeled': { en: 'Unlabeled', ko: '무라벨' },
   'ana.rhythm.title': { en: 'Daily rhythm', ko: '오늘의 리듬' },
   'ana.rhythm.collecting': { en: 'Collecting baseline ({n}/{min} days)', ko: '기준선 수집 중 ({n}/{min}일)' },
@@ -226,13 +227,12 @@ export const messages = {
   'set.rowAnalysis': { en: 'Analysis', ko: '분석' },
   'ana.panel.dayRange': { en: 'Daytime range', ko: '주간 구간' },
   'ana.panel.dayNote': {
-    en: 'Outside this range the night prompt applies. Adjust to match the pet house lighting.',
-    ko: '이 구간 밖에는 야간 프롬프트를 적용합니다. 펫하우스의 조도에 맞춰 조정하십시오.',
+    en: 'Outside this range, states are read as lying vs. not-lying (night IR). The boundary applies immediately and only affects interpretation.',
+    ko: '이 구간 밖(야간 IR)은 누움/비누움 2단계로 해석합니다. 경계는 즉시 적용되며 해석에만 영향을 줍니다.',
   },
   'ana.panel.labels': { en: 'State vocabulary', ko: '상태 어휘' },
   'ana.panel.applied': { en: 'Saved and applied', ko: '저장하여 적용했습니다' },
   'ana.panel.error': { en: 'Apply failed', ko: '적용 실패' },
-  'ana.panel.invalid': { en: 'Start and end must differ', ko: '시작과 종료 시각이 같을 수 없습니다' },
 
   'login.subtitle': { en: 'Connect to the Babycat backend.', ko: 'Babycat 백엔드에 연결합니다.' },
 
