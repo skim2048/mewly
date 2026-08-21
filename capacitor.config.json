@@ -7,7 +7,7 @@
     "cleartext": true
   },
   "android": {
-    "adjustMarginsForEdgeToEdge": "auto"
+    "adjustMarginsForEdgeToEdge": "disable"
   },
   "plugins": {
     "SplashScreen": {
@@ -18,7 +18,7 @@
       "splashImmersive": false
     },
     "StatusBar": {
-      "overlaysWebView": false,
+      "overlaysWebView": true,
       "style": "DARK",
       "backgroundColor": "#181513"
     }

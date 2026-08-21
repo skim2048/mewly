@@ -249,9 +249,19 @@ function pickBreed(value) {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  /* 필드 소제목은 공용 폼 라벨(.form-field)과 동일 사양 — 역할 통일 (실기 지적) */
+  font-size: var(--font-body);
+  font-weight: 700;
+  color: var(--color-neutral-300);
+}
+.field > span:not(.field-row) {
+  /* 라벨 아래 힌트는 힌트 역할 사양으로 복귀 */
   font-size: var(--font-label);
+  font-weight: 400;
   color: var(--color-neutral-400);
 }
+.field .field-value { font-weight: 400; }
+.field .field-note { font-weight: 400; }
 .field input {
   height: 48px;
   border-radius: 10px;

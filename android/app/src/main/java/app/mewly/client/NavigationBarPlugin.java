@@ -1,12 +1,17 @@
 package app.mewly.client;
 
 import android.graphics.Color;
+import android.view.View;
 import android.view.Window;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -20,6 +25,30 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  */
 @CapacitorPlugin(name = "NavigationBar")
 public class NavigationBarPlugin extends Plugin {
+
+    /**
+     * 시스템 바 인셋(dp)을 반환한다. 엣지 투 엣지에서 상단 바·하단 제스처
+     * 영역의 안전 여백을 웹 레이어가 CSS 변수로 반영하는 데 쓴다
+     * (Android WebView는 env(safe-area-inset-*)를 채우지 않는다).
+     */
+    @PluginMethod
+    public void getInsets(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            View decor = getActivity().getWindow().getDecorView();
+            androidx.core.view.WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(decor);
+            float density = getActivity().getResources().getDisplayMetrics().density;
+            JSObject ret = new JSObject();
+            if (insets != null) {
+                Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                ret.put("top", Math.round(bars.top / density));
+                ret.put("bottom", Math.round(bars.bottom / density));
+            } else {
+                ret.put("top", 0);
+                ret.put("bottom", 0);
+            }
+            call.resolve(ret);
+        });
+    }
 
     /**
      * 전체화면(영상 확대) 몰입 모드: 상태바·내비바를 함께 숨긴다.

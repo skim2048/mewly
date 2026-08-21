@@ -32,11 +32,11 @@ const emit = defineEmits(['close'])
 .overlay-head {
   flex: none;
   /* edge-to-edge(안드 15+) 대비 — non-overlay 상태바(현행)에서는 inset이 0 */
-  height: calc(56px + env(safe-area-inset-top, 0px));
+  height: calc(56px + var(--inset-top, env(safe-area-inset-top, 0px)));
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: env(safe-area-inset-top, 0px) 10px 0 8px;
+  padding: var(--inset-top, env(safe-area-inset-top, 0px)) 10px 0 8px;
 }
 .head-btn {
   width: 44px; height: 44px;

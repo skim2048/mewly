@@ -228,8 +228,10 @@ function remove() {
   gap: 10px;
 }
 .field-label {
-  font-size: var(--font-label);
-  color: var(--color-neutral-400);
+  /* 필드 소제목은 공용 폼 라벨과 동일 사양 — 역할 통일 (실기 지적) */
+  font-size: var(--font-body);
+  font-weight: 700;
+  color: var(--color-neutral-300);
 }
 .chip-row {
   display: flex;

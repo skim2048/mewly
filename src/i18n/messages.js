@@ -279,7 +279,7 @@ export const messages = {
   },
   'notifSet.foot': {
     en: 'Turning Schedule off removes every alarm already queued. Turning it back on starts alerting again from the next upcoming schedule.',
-    ko: '일정을 끄면 예약해 둔 알림이 모두 사라집니다. 다시 켜면 앞으로 남은 일정부터 다시 알려 줍니다.',
+    ko: '일정을 끄면 예약해 둔 알림이 모두 사라집니다. 다시 켜면 앞으로 남은 일정부터 알려 줍니다.',
   },
   'notifSet.abnTitle': { en: 'Events', ko: '이벤트' },
   'notifSet.abnSub': {

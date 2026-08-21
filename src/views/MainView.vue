@@ -283,7 +283,7 @@ onMounted(loadCamera)
 .device-toast {
   position: absolute;
   left: 50%;
-  bottom: 24px;
+  bottom: calc(24px + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
   transform: translateX(-50%);
   width: calc(100% - 32px);
   max-width: 420px;
@@ -326,8 +326,9 @@ onMounted(loadCamera)
   position: relative;
   /* @claude edge-to-edge(안드 15+)에서 상태바 아래로 내용이 깔리지 않도록.
      non-overlay 상태바(현행)에서는 inset이 0이라 58px 그대로다. */
-  height: calc(58px + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
+  /* 엣지 투 엣지: 인셋은 네이티브가 --inset-*으로 주입 (웹은 env 폴백) */
+  height: calc(58px + var(--inset-top, env(safe-area-inset-top, 0px)));
+  padding-top: var(--inset-top, env(safe-area-inset-top, 0px));
   flex: none;
   display: flex;
   align-items: center;
@@ -429,7 +430,7 @@ onMounted(loadCamera)
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   background: var(--color-bg);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: var(--inset-bottom, env(safe-area-inset-bottom, 0px));
 }
 .nav-item {
   border: none;

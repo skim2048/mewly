@@ -52,7 +52,7 @@
   /* Wally 팔레트 이식(사용자 확정) — 웜 크림/피치. divider는 Wally 원본
      (#12100f, 배경보다 어두움)이 표면 구분선 역할에 맞지 않아 밝은 알파로 교정. */
   --color-bg:      #181513;
-  --color-surface: #1c1918;
+  --color-surface: #262019; /* 실기 지적: 입력 필드(bg색)와 경계가 지도록 상향 */
   --color-text:    #fff9f3;
   --color-accent:  #ffb38a;
   --color-accent-2: #ffc8a7; /* Wally 다크의 strong=primary 중복을 옅은 단계로 교정 */

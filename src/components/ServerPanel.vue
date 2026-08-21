@@ -37,7 +37,8 @@ async function save() {
       <i class="ph ph-warning-circle"></i>
       <span>{{ t('srv.note') }}</span>
     </div>
-    <label class="field">{{ t('srv.addr') }}
+    <!-- 사용자 확정: 레이블 없이 입력 필드만 (모달 제목이 맥락을 대신한다) -->
+    <label class="field" :aria-label="t('srv.addr')">
       <input v-model="host" spellcheck="false" autocapitalize="off" inputmode="url" enterkeyhint="done">
     </label>
     <div class="actions">
@@ -75,8 +76,10 @@ async function save() {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: var(--font-label);
-  color: var(--color-neutral-400);
+  /* 필드 소제목 공용 사양 (aria-label 전용이지만 역할 규약 유지) */
+  font-size: var(--font-body);
+  font-weight: 700;
+  color: var(--color-neutral-300);
 }
 .field input {
   width: 100%;

@@ -44,7 +44,6 @@ function onBackdrop(e) {
   max-height: 100%;
   overflow: auto;
   background: var(--color-surface);
-  border: 1px solid var(--color-divider); /* 다크 경계 소실 방지 (실기 지적) */
   border-radius: 16px;
   padding: 20px;
   display: flex;
