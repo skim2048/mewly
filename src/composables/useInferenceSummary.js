@@ -11,11 +11,26 @@ import { toIsoDate, parseIsoDate } from './dates.js'
 
 export const METRIC_KEYS = ['lying', 'sitting', 'standing', 'restless']
 
+// @claude 백엔드의 간헐 500(스레드 배정 복권)을 흡수하기 위해 짧게 재시도한다.
+// @claude 결함 수정 후에도 일시 오류 흡수 용도로 무해하다.
+const RETRIES = 2
+const RETRY_DELAY_MS = 250
+
 async function fetchSummary(dateFrom, dateTo, bucket) {
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo, bucket })
-  const res = await authFetch(`${API_ENDPOINTS.summary}?${params}`)
-  if (!res.ok) throw new Error(`summary ${res.status}`)
-  return (await res.json()).buckets || []
+  let lastError
+  for (let attempt = 0; attempt <= RETRIES; attempt++) {
+    try {
+      const res = await authFetch(`${API_ENDPOINTS.summary}?${params}`)
+      if (res.ok) return (await res.json()).buckets || []
+      lastError = new Error(`summary ${res.status}`)
+      if (res.status < 500) break // 4xx는 재시도 무의미
+    } catch (e) {
+      lastError = e
+    }
+    if (attempt < RETRIES) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+  }
+  throw lastError
 }
 
 function emptyHours() {

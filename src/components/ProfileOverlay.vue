@@ -12,6 +12,31 @@ const { profile, ageYears, birthLabel } = useProfile()
 const breedMode = ref(false)
 const breedQuery = ref('')
 
+// ── 프로필 사진 — 시스템 선택기로 받아 캔버스로 축소 후 data URL로 저장 ──
+// @claude localStorage 용량(≈5MB)을 지키기 위해 긴 변 512px·JPEG 0.85로
+// @claude 축소한다(수십~백여 KB). 새 선택은 기존 사진을 대체한다.
+const photoInput = ref(null)
+
+function onPhotoPicked(event) {
+  const file = event.target.files?.[0]
+  event.target.value = '' // 같은 파일 재선택도 change가 발화하도록
+  if (!file) return
+  const url = URL.createObjectURL(file)
+  const img = new Image()
+  img.onload = () => {
+    URL.revokeObjectURL(url)
+    const MAX = 512
+    const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(img.width * scale)
+    canvas.height = Math.round(img.height * scale)
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+    profile.value = { ...profile.value, photo: canvas.toDataURL('image/jpeg', 0.85) }
+  }
+  img.onerror = () => URL.revokeObjectURL(url)
+  img.src = url
+}
+
 const breedList = computed(() => {
   const q = breedQuery.value.trim().toLowerCase()
   return BREEDS
@@ -68,10 +93,20 @@ function pickBreed(value) {
     </template>
     <div class="profile-body">
       <div class="photo-block">
-        <span class="photo-wrap">
-          <span class="photo"><i class="ph ph-dog"></i></span>
+        <button class="photo-wrap" :aria-label="t('profile.photoHint')" @click="photoInput?.click()">
+          <span class="photo">
+            <img v-if="profile.photo" :src="profile.photo" alt="">
+            <i v-else class="ph ph-dog"></i>
+          </span>
           <span class="photo-edit"><i class="ph ph-camera"></i></span>
-        </span>
+        </button>
+        <input
+          ref="photoInput"
+          type="file"
+          accept="image/*"
+          class="photo-input"
+          @change="onPhotoPicked"
+        >
         <span class="photo-hint">{{ t('profile.photoHint') }}</span>
       </div>
 
@@ -214,6 +249,17 @@ function pickBreed(value) {
 .photo-wrap {
   position: relative;
   width: 100px; height: 100px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.photo-input { display: none; }
+.photo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50px;
+  object-fit: cover;
 }
 .photo {
   position: absolute;

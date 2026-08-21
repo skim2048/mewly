@@ -380,6 +380,10 @@ export const messages = {
     en: 'Unavailable right now — another control is in progress.',
     ko: '지금은 사용할 수 없습니다. 다른 제어가 진행 중입니다.',
   },
+  'toast.loadFail': {
+    en: 'Failed to load analysis data. Check the backend.',
+    ko: '분석 데이터를 불러오지 못했습니다. 백엔드 상태를 확인하세요.',
+  },
   'toast.patrolLock': {
     en: 'Auto patrol — manual control is locked',
     ko: '자동 순찰 중 — 수동 조작이 잠겨 있습니다',

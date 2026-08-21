@@ -38,7 +38,10 @@ const group2 = computed(() => [
   <div class="settings-tab">
 
     <button class="profile-card" @click="emit('open-overlay', 'profile')">
-      <span class="profile-avatar"><i class="ph ph-dog"></i></span>
+      <span class="profile-avatar">
+        <img v-if="profile.photo" :src="profile.photo" alt="">
+        <i v-else class="ph ph-dog"></i>
+      </span>
       <span class="profile-copy">
         <span class="profile-name">{{ profile.name }}</span>
         <span class="profile-sub">{{ breedLabel(profile.breed, locale) }} · {{ t('profile.age', { n: ageYears }) }}</span>
@@ -105,11 +108,17 @@ const group2 = computed(() => [
   font-family: inherit;
   text-align: left;
 }
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .profile-avatar {
   flex: none;
   width: 52px; height: 52px;
   border-radius: 26px;
   background: var(--color-neutral-800);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

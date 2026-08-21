@@ -29,6 +29,7 @@ const profile = persistentRef('profile', {
   name: '콩이',
   breed: '말티즈',
   birth: '2023-03-14',
+  photo: '', // 축소된 JPEG data URL (미등록 시 빈 문자열)
 })
 
 export function useProfile() {

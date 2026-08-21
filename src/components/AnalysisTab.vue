@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useLocale, formatDateTime } from '../composables/useLocale.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useClips } from '../composables/useClips.js'
+import { useToast } from '../composables/useToast.js'
 import { authFetch } from '../composables/useFetch.js'
 import { API_ENDPOINTS, getClipUrl } from '../endpoints.js'
 import { parseIsoDate, toIsoDate } from '../composables/dates.js'
@@ -30,6 +31,19 @@ const props = defineProps({
 const { t } = useLocale()
 const { isAuthenticated, accessToken } = useAuth()
 const { clipVersion, deleteClips } = useClips()
+const { showToast } = useToast()
+
+// ── 적재 진행 표시 — 세 로더가 하나라도 진행 중이면 중앙 스피너 ──
+const pendingLoads = ref(0)
+const loading = computed(() => pendingLoads.value > 0)
+async function tracked(job) {
+  pendingLoads.value++
+  try {
+    await job()
+  } finally {
+    pendingLoads.value--
+  }
+}
 
 // ── 대상 날짜 (오늘 기준 역방향 이동만 허용) ──
 const dayOffset = ref(0)
@@ -58,6 +72,9 @@ let summarySeq = 0
 
 async function loadSummary() {
   if (!isAuthenticated.value) return
+  return tracked(() => doLoadSummary())
+}
+async function doLoadSummary() {
   const mySeq = ++summarySeq
   try {
     const [today, lastWeek] = await Promise.all([
@@ -67,7 +84,9 @@ async function loadSummary() {
     if (mySeq !== summarySeq) return
     summary.value = today
     lastWeekTotals.value = Object.fromEntries(lastWeek.cards.map((c) => [c.keyword, c.total]))
-  } catch {}
+  } catch {
+    showToast('loadFail')
+  }
 }
 
 // 히트맵 셀 강도: 그날 최대치 기준 4단계 양자화(계획 확정 — 희소 데이터 대응)
@@ -96,6 +115,9 @@ let statesSeq = 0
 
 async function loadStates() {
   if (!isAuthenticated.value) return
+  return tracked(() => doLoadStates())
+}
+async function doLoadStates() {
   const mySeq = ++statesSeq
   try {
     const st = await fetchDayStates(targetIso.value)
@@ -104,7 +126,9 @@ async function loadStates() {
     const bl = await fetchBaseline(targetIso.value)
     if (mySeq !== statesSeq) return
     baseline.value = bl
-  } catch {}
+  } catch {
+    showToast('loadFail')
+  }
 }
 
 // 리듬 카드 행: 주간 3종 + 야간 뒤척임(비누움) 지표와 기준선 평균 (회신서 §7.4.1)
@@ -180,6 +204,9 @@ let clipSeq = 0
 
 async function loadClips() {
   if (!isAuthenticated.value) return
+  return tracked(() => doLoadClips())
+}
+async function doLoadClips() {
   const mySeq = ++clipSeq
   const params = new URLSearchParams({
     date_from: targetIso.value,
@@ -188,11 +215,17 @@ async function loadClips() {
   })
   try {
     const res = await authFetch(`${API_ENDPOINTS.clips}?${params}`)
-    if (mySeq !== clipSeq || !res.ok) return
+    if (mySeq !== clipSeq) return
+    if (!res.ok) {
+      showToast('loadFail')
+      return
+    }
     const data = await res.json()
     if (mySeq !== clipSeq) return
     clips.value = data.clips || []
-  } catch {}
+  } catch {
+    showToast('loadFail')
+  }
 }
 
 // 드릴다운 → 이벤트의 clip_name 집합으로 목록을 좁힌다
@@ -305,6 +338,11 @@ onBeforeUnmount(() => {
       <button class="date-btn" :disabled="dayOffset === 0" :aria-label="t('ana.nextDay')" @click="dayOffset--">
         <i class="ph ph-caret-right"></i>
       </button>
+    </div>
+
+    <!-- 적재 중: 중앙 프로그레스 서클 (내용 위 반투명 오버레이) -->
+    <div v-if="loading" class="ana-loading" aria-live="polite">
+      <span class="ana-spinner"></span>
     </div>
 
     <div class="ana-body">
@@ -453,11 +491,33 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .analysis-tab {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.ana-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-bg) 45%, transparent);
+  pointer-events: none;
+}
+.ana-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--color-neutral-800);
+  border-top-color: var(--color-accent);
+  animation: anaspin 0.8s linear infinite;
+}
+@keyframes anaspin {
+  to { transform: rotate(360deg); }
 }
 
 /* ── 날짜 이동 ── */
