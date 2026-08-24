@@ -71,10 +71,10 @@ export const API_ENDPOINTS = {
   get summary() {
     return getApiUrl('/summary')
   },
-  // @claude 반려견 프로필(라우터 소유). /profile이 아닌 것은 라우터에서 그 이름이
-  // @claude 이미 영상 소스 프로파일(/camera → streamer)의 의미로 쓰이기 때문.
-  get petProfile() {
-    return getApiUrl('/pet/profile')
+  // @claude 라우터의 도메인 중립 클라이언트 저장소(계정별·키별 JSON 문서).
+  // @claude 반려견 프로필 등 도메인 지식은 전부 클라이언트(키 이름)에 있다.
+  clientStorage(key) {
+    return getApiUrl(`/client/storage/${key}`)
   },
   clipFile(name) {
     return getApiUrl(`/clips/${encodeURIComponent(name)}`)

@@ -1,7 +1,6 @@
-import { computed } from 'vue'
-import { API_ENDPOINTS } from '../endpoints.js'
+import { computed, ref, watch } from 'vue'
+import { API_ENDPOINTS, getEditableMewlyHost } from '../endpoints.js'
 import { authFetch } from './useFetch.js'
-import { persistentRef } from './storage.js'
 import { t } from './useLocale.js'
 
 // @claude 시안의 견종 목록. 한국어 명칭을 canonical 값으로 저장하고 영어는
@@ -37,29 +36,42 @@ const EMPTY_PROFILE = {
   notes: '', // 특징 — 성격·습관 등 자유 기록
 }
 
-// @claude 원본은 라우터(/pet/profile)이고 localStorage는 표시용 캐시다 —
-// @claude 조회 실패(오프라인 등) 시 마지막으로 본 값을 계속 보여 준다.
-const profile = persistentRef('profile', { ...EMPTY_PROFILE })
+// @claude 원본은 접속 중인 하우스(라우터)의 클라이언트 저장소이고, localStorage는
+// @claude 표시용 캐시다 — 조회 실패(오프라인 등) 시 마지막으로 본 값을 보여 준다.
+// @claude 하우스마다 반려견이 다르므로 캐시 키는 접속 호스트 단위로 나눈다.
+const STORAGE_KEY = 'pet_profile'
 
-function isEmptyProfile(p) {
-  return Object.values(p).every((v) => !v)
+function cacheKey() {
+  return `mewly.profile.${getEditableMewlyHost() || 'default'}`
 }
 
-// 로그인 후 1회 호출해 서버 값을 캐시에 반영한다. 서버가 비어 있는데 캐시에
-// 값이 있으면 localStorage 전용이던 시절의 데이터를 서버로 1회 이관한다.
+function readCache() {
+  try {
+    const raw = window.localStorage.getItem(cacheKey())
+    if (raw !== null) return { ...EMPTY_PROFILE, ...JSON.parse(raw) }
+  } catch { /* 손상된 캐시는 기본값으로 대체 */ }
+  return { ...EMPTY_PROFILE }
+}
+
+const profile = ref(readCache())
+watch(profile, (next) => {
+  try {
+    window.localStorage.setItem(cacheKey(), JSON.stringify(next))
+  } catch { /* 캐시 실패(용량 등)는 무시 — 메모리 상태로 계속 동작 */ }
+}, { deep: true })
+
+// 로그인 후 1회 호출해 접속 호스트의 서버 값을 캐시에 반영한다
 async function loadProfile() {
-  const res = await authFetch(API_ENDPOINTS.petProfile)
+  // 호스트가 바뀌었을 수 있으므로 먼저 그 호스트의 캐시로 표시를 맞춘다
+  profile.value = readCache()
+  const res = await authFetch(API_ENDPOINTS.clientStorage(STORAGE_KEY))
   if (!res.ok) throw new Error(`profile load failed: ${res.status}`)
   const data = await res.json()
-  if (isEmptyProfile(data) && !isEmptyProfile(profile.value)) {
-    await saveProfile()
-    return
-  }
   profile.value = { ...EMPTY_PROFILE, ...data }
 }
 
 async function saveProfile() {
-  const res = await authFetch(API_ENDPOINTS.petProfile, {
+  const res = await authFetch(API_ENDPOINTS.clientStorage(STORAGE_KEY), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile.value),

@@ -13,7 +13,7 @@ const { t, locale } = useLocale()
 const { profile, ageText, birthLabel, saveProfile } = useProfile()
 const { showToast } = useToast()
 
-// 저장: 서버(/pet/profile) 반영 후 토스트로만 확인한다 (화면 유지, 닫기는 X)
+// 저장: 서버(클라이언트 저장소) 반영 후 토스트로만 확인한다 (화면 유지, 닫기는 X)
 const saving = ref(false)
 async function onSave() {
   if (saving.value) return
