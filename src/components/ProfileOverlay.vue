@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
+import { onBackButton } from '../native/backButton.js'
 import { useProfile, BREEDS, BREED_OTHER, breedLabel } from '../composables/useProfile.js'
 import OverlayFrame from './OverlayFrame.vue'
 import { useToast } from '../composables/useToast.js'
@@ -141,52 +142,92 @@ const breedEmpty = computed(() => breedQuery.value.trim() && !breedList.value.le
 
 function pickBreed(value) {
   profile.value = { ...profile.value, breed: value }
+  closeBreedMode()
+}
+
+function closeBreedMode() {
   breedMode.value = false
   breedQuery.value = ''
 }
+
+// ── 프레임 모드 — 루트 OverlayFrame은 하나이고 제목·아이콘·닫기 동작만 바뀐다 ──
+const mode = computed(() => (breedMode.value ? 'breed' : cropMode.value ? 'crop' : 'edit'))
+const frameTitle = computed(() => ({
+  breed: t('breed.pick'),
+  crop: t('profile.cropTitle'),
+  edit: t('profile.title'),
+})[mode.value])
+function onFrameClose() {
+  if (mode.value === 'breed') closeBreedMode()
+  else if (mode.value === 'crop') cancelCrop()
+  else emit('close')
+}
+
+// Android 뒤로가기: 내부 모드(크롭·견종)를 먼저 닫는다. 프로필 편집 루트에서는
+// 소비하지 않아 MainView의 핸들러가 오버레이를 닫는다.
+const offBack = onBackButton(() => {
+  if (cropMode.value) { cancelCrop(); return true }
+  if (breedMode.value) { closeBreedMode(); return true }
+  return false
+})
+onUnmounted(offBack)
+
+// ── 특징 textarea — 내용 높이에 맞춰 자동 확장(rows=4가 최소 높이) ──
+const notesInput = ref(null)
+function autosizeNotes() {
+  const el = notesInput.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+// 모드 전환(견종·크롭) 복귀 시 편집 분기가 재마운트되므로 ref 갱신마다 재계산
+watch(notesInput, (el) => { if (el) autosizeNotes() })
 </script>
 
 <template>
-  <!-- 견종 선택 모드 -->
+  <!-- 단일 OverlayFrame 루트에 세 모드(견종 선택·사진 크롭·프로필 편집)를 담는다.
+       모드마다 프레임을 분기하면 컴포넌트 루트 요소가 교체되고, 그때 MainView의
+       <Transition name="layer"> 훅이 새 루트에 다시 걸려 개발 서버(주석 보존 →
+       fragment 루트)에서 enter가 layer-enter-from 상태로 고착된다 — 화면 밖에
+       머물러 창이 닫힌 것처럼 보인다. v-if 분기 간 동일 key는 컴파일러가
+       금지하므로 루트 프레임을 하나로 유지한다. -->
   <OverlayFrame
-    v-if="breedMode"
-    :title="t('breed.pick')"
-    icon="back"
-    @close="breedMode = false"
-  >
-    <div class="breed-search">
-      <i class="ph ph-magnifying-glass"></i>
-      <input v-model="breedQuery" :placeholder="t('breed.searchPh')">
-    </div>
-    <div class="breed-list">
-      <div v-if="breedEmpty" class="breed-none">
-        <span class="breed-none-text">{{ t('breed.none', { q: breedQuery.trim() }) }}</span>
-        <span class="breed-none-hint">{{ t('breed.hint') }}</span>
-        <button class="breed-etc" @click="pickBreed(BREED_OTHER.ko)">{{ t('breed.saveEtc') }}</button>
-      </div>
-      <button
-        v-for="b in breedList"
-        :key="b.value"
-        class="breed-item"
-        @click="pickBreed(b.value)"
-      >
-        <span>{{ b.label }}</span>
-        <i v-if="b.current" class="ph-fill ph-check-circle"></i>
-      </button>
-    </div>
-  </OverlayFrame>
-
-  <!-- 사진 크롭 모드: 원형으로 남을 영역을 드래그·슬라이더로 지정 -->
-  <OverlayFrame
-    v-else-if="cropMode"
-    :title="t('profile.cropTitle')"
-    icon="back"
-    @close="cancelCrop"
+    :title="frameTitle"
+    :icon="mode === 'edit' ? 'x' : 'back'"
+    @close="onFrameClose"
   >
     <template #actions>
-      <button class="head-save" @click="confirmCrop">{{ t('common.save') }}</button>
+      <button v-if="mode === 'crop'" class="head-save" @click="confirmCrop">{{ t('common.save') }}</button>
+      <!-- 사용자 확정: 저장은 화면을 유지하고 토스트로만 확인한다 (닫기는 X) -->
+      <button v-else-if="mode === 'edit'" class="head-save" @click="showToast('profileSaved')">{{ t('common.save') }}</button>
     </template>
-    <div class="crop-body">
+
+    <!-- 견종 선택 모드 -->
+    <template v-if="mode === 'breed'">
+      <div class="breed-search">
+        <i class="ph ph-magnifying-glass"></i>
+        <input v-model="breedQuery" :placeholder="t('breed.searchPh')">
+      </div>
+      <div class="breed-list">
+        <div v-if="breedEmpty" class="breed-none">
+          <span class="breed-none-text">{{ t('breed.none', { q: breedQuery.trim() }) }}</span>
+          <span class="breed-none-hint">{{ t('breed.hint') }}</span>
+          <button class="breed-etc" @click="pickBreed(BREED_OTHER.ko)">{{ t('breed.saveEtc') }}</button>
+        </div>
+        <button
+          v-for="b in breedList"
+          :key="b.value"
+          class="breed-item"
+          @click="pickBreed(b.value)"
+        >
+          <span>{{ b.label }}</span>
+          <i v-if="b.current" class="ph-fill ph-check-circle"></i>
+        </button>
+      </div>
+    </template>
+
+    <!-- 사진 크롭 모드: 원형으로 남을 영역을 드래그·슬라이더로 지정 -->
+    <div v-else-if="mode === 'crop'" class="crop-body">
       <div
         class="crop-stage"
         @pointerdown.prevent="cropDown"
@@ -209,15 +250,9 @@ function pickBreed(value) {
         @input="onCropZoom"
       >
     </div>
-  </OverlayFrame>
 
-  <!-- 프로필 편집 모드 -->
-  <OverlayFrame v-else :title="t('profile.title')" icon="x" @close="emit('close')">
-    <template #actions>
-      <!-- 사용자 확정: 저장은 화면을 유지하고 토스트로만 확인한다 (닫기는 X) -->
-      <button class="head-save" @click="showToast('profileSaved')">{{ t('common.save') }}</button>
-    </template>
-    <div class="profile-body">
+    <!-- 프로필 편집 모드 -->
+    <div v-else class="profile-body">
       <div class="photo-block">
         <button class="photo-wrap" :aria-label="t('profile.photoHint')" @click="photoInput?.click()">
           <span class="photo">
@@ -265,10 +300,12 @@ function pickBreed(value) {
 
       <label class="field">{{ t('profile.notes') }}
         <textarea
+          ref="notesInput"
           v-model="profile.notes"
           class="notes-input"
           rows="4"
           :placeholder="t('profile.notesPh')"
+          @input="autosizeNotes"
         ></textarea>
       </label>
     </div>
@@ -546,6 +583,8 @@ function pickBreed(value) {
   line-height: 1.55;
   resize: none;
   outline: none;
+  /* 높이는 입력 시 scrollHeight로 갱신 — 스크롤바 대신 확장 */
+  overflow-y: hidden;
 }
 .notes-input::placeholder { color: var(--color-neutral-500); }
 </style>
