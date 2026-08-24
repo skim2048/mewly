@@ -415,6 +415,10 @@ export const messages = {
     ko: '지금은 사용할 수 없습니다. 다른 제어가 진행 중입니다.',
   },
   'toast.profileSaved': { en: 'Saved.', ko: '저장되었습니다.' },
+  'toast.profileSaveFail': {
+    en: 'Could not save. Check the connection.',
+    ko: '저장하지 못했습니다. 연결 상태를 확인해 주세요.',
+  },
   'toast.loadFail': {
     en: 'Failed to load analysis data. Check the backend.',
     ko: '분석 데이터를 불러오지 못했습니다. 백엔드 상태를 확인하세요.',

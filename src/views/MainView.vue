@@ -1,6 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
+import { useProfile } from '../composables/useProfile.js'
 import { onBackButton } from '../native/backButton.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useLocale } from '../composables/useLocale.js'
@@ -29,6 +30,7 @@ const LightSheet = defineAsyncComponent(() => import('../components/LightSheet.v
 const ServerPanel = defineAsyncComponent(() => import('../components/ServerPanel.vue'))
 
 const { connected, load: loadCamera } = useCamera()
+const { loadProfile } = useProfile()
 const {
   logout, mustChangePassword,
   isAuthenticated, isPersistentSession, sessionRemainingSeconds,
@@ -133,7 +135,11 @@ function handleLogout() {
   logout({ redirect: true })
 }
 
-onMounted(loadCamera)
+onMounted(() => {
+  loadCamera()
+  // 프로필은 서버가 원본 — 실패 시 localStorage 캐시 표시로 대신한다
+  loadProfile().catch(() => {})
+})
 </script>
 
 <template>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 백엔드(게이트웨이 8000)는 사설 CA의 HTTPS다. 시스템 CA에 없는 그 CA 루트를
+     앱에 동봉해 신뢰한다(기기 수동 설치 불필요). CA를 재발급하면 res/raw의
+     babycat_ca.crt도 함께 교체해야 한다.
+     cleartext 허용은 앱 셸 origin(http://localhost)을 위한 것으로, 백엔드
+     트래픽은 전부 HTTPS다. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/babycat_ca" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

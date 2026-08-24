@@ -1,4 +1,6 @@
 import { computed } from 'vue'
+import { API_ENDPOINTS } from '../endpoints.js'
+import { authFetch } from './useFetch.js'
 import { persistentRef } from './storage.js'
 import { t } from './useLocale.js'
 
@@ -27,13 +29,43 @@ export function breedLabel(breed, locale) {
 }
 
 // 기본값은 빈 프로필 — 더미 이름·견종·생일을 남기지 않는다 (사용자 확정)
-const profile = persistentRef('profile', {
+const EMPTY_PROFILE = {
   name: '',
   breed: '',
   birth: '',
   photo: '', // 축소된 JPEG data URL (미등록 시 빈 문자열)
   notes: '', // 특징 — 성격·습관 등 자유 기록
-})
+}
+
+// @claude 원본은 라우터(/pet/profile)이고 localStorage는 표시용 캐시다 —
+// @claude 조회 실패(오프라인 등) 시 마지막으로 본 값을 계속 보여 준다.
+const profile = persistentRef('profile', { ...EMPTY_PROFILE })
+
+function isEmptyProfile(p) {
+  return Object.values(p).every((v) => !v)
+}
+
+// 로그인 후 1회 호출해 서버 값을 캐시에 반영한다. 서버가 비어 있는데 캐시에
+// 값이 있으면 localStorage 전용이던 시절의 데이터를 서버로 1회 이관한다.
+async function loadProfile() {
+  const res = await authFetch(API_ENDPOINTS.petProfile)
+  if (!res.ok) throw new Error(`profile load failed: ${res.status}`)
+  const data = await res.json()
+  if (isEmptyProfile(data) && !isEmptyProfile(profile.value)) {
+    await saveProfile()
+    return
+  }
+  profile.value = { ...EMPTY_PROFILE, ...data }
+}
+
+async function saveProfile() {
+  const res = await authFetch(API_ENDPOINTS.petProfile, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile.value),
+  })
+  if (!res.ok) throw new Error(`profile save failed: ${res.status}`)
+}
 
 export function useProfile() {
   // 나이는 「X년 Y개월」로 표기한다 (사용자 확정). 0년·0개월은 자연 생략.
@@ -56,5 +88,5 @@ export function useProfile() {
   // 화면 표기 YY-MM-DD (내부는 ISO)
   const birthLabel = computed(() => (profile.value.birth ? profile.value.birth.replace(/^\d{2}/, '') : '—'))
 
-  return { profile, ageText, birthLabel }
+  return { profile, ageText, birthLabel, loadProfile, saveProfile }
 }

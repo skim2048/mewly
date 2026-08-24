@@ -1,11 +1,14 @@
 // Route map for the dashboard.
-// The router (port 8000) is the single entry point for everything —
-// control, SSE/MJPEG relays, and the HLS/WHEP streaming relays.
-// Only WebRTC media (UDP 8189) bypasses it.
+// The gateway (port 8000, TLS termination in front of the router) is the
+// single entry point for everything — control, SSE/MJPEG relays, and the
+// HLS/WHEP streaming relays. Only WebRTC media (UDP 8189) bypasses it.
 
 import network from '../config/network.json'
 
 const MEWLY_HOST_STORAGE_KEY = 'mewly_host'
+// @claude 백엔드가 사설 CA의 HTTPS로 전환됨(2026-08-24) — 평문 http는 게이트웨이가
+// @claude 더 이상 서빙하지 않는다. 클라이언트 기기에는 CA 루트 설치가 전제된다.
+const SCHEME = network.backendScheme
 const PORT = network.backendPort
 
 function hasWindow() {
@@ -37,7 +40,7 @@ function getMewlyHost() {
 }
 
 function getApiUrl(path) {
-  return `http://${getMewlyHost()}:${PORT}${path}`
+  return `${SCHEME}://${getMewlyHost()}:${PORT}${path}`
 }
 
 export const API_ENDPOINTS = {
@@ -67,6 +70,11 @@ export const API_ENDPOINTS = {
   // recorder 집계(3층) 조회 — 버킷별 라벨 발생 수와 분모(total)
   get summary() {
     return getApiUrl('/summary')
+  },
+  // @claude 반려견 프로필(라우터 소유). /profile이 아닌 것은 라우터에서 그 이름이
+  // @claude 이미 영상 소스 프로파일(/camera → streamer)의 의미로 쓰이기 때문.
+  get petProfile() {
+    return getApiUrl('/pet/profile')
   },
   clipFile(name) {
     return getApiUrl(`/clips/${encodeURIComponent(name)}`)
@@ -143,11 +151,11 @@ export function getStreamHost() {
 // @claude HLS and WHEP go through the router relay (single entry). Only the
 // @claude WebRTC media itself flows directly from the streamer (UDP 8189).
 export function getHlsUrl(host = getStreamHost()) {
-  return `http://${host}:${PORT}/live/hls/index.m3u8`
+  return `${SCHEME}://${host}:${PORT}/live/hls/index.m3u8`
 }
 
 export function getWhepUrl(host = getStreamHost()) {
-  return `http://${host}:${PORT}/live/whep`
+  return `${SCHEME}://${host}:${PORT}/live/whep`
 }
 
 export function getEventsUrl(token) {

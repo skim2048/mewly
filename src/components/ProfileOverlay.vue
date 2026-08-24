@@ -10,8 +10,23 @@ import ui from '../../config/ui.json'
 const emit = defineEmits(['close'])
 
 const { t, locale } = useLocale()
-const { profile, ageText, birthLabel } = useProfile()
+const { profile, ageText, birthLabel, saveProfile } = useProfile()
 const { showToast } = useToast()
+
+// 저장: 서버(/pet/profile) 반영 후 토스트로만 확인한다 (화면 유지, 닫기는 X)
+const saving = ref(false)
+async function onSave() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    await saveProfile()
+    showToast('profileSaved')
+  } catch {
+    showToast('profileSaveFail')
+  } finally {
+    saving.value = false
+  }
+}
 
 const breedMode = ref(false)
 const breedQuery = ref('')
@@ -199,7 +214,7 @@ watch(notesInput, (el) => { if (el) autosizeNotes() })
     <template #actions>
       <button v-if="mode === 'crop'" class="head-save" @click="confirmCrop">{{ t('common.save') }}</button>
       <!-- 사용자 확정: 저장은 화면을 유지하고 토스트로만 확인한다 (닫기는 X) -->
-      <button v-else-if="mode === 'edit'" class="head-save" @click="showToast('profileSaved')">{{ t('common.save') }}</button>
+      <button v-else-if="mode === 'edit'" class="head-save" :disabled="saving" @click="onSave">{{ t('common.save') }}</button>
     </template>
 
     <!-- 견종 선택 모드 -->
