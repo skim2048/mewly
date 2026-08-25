@@ -234,6 +234,7 @@ function onGaugeChange(axis, e) {
 onBeforeUnmount(() => {
   clearTimeout(panHoldTimer)
   clearTimeout(tiltHoldTimer)
+  clearTimeout(patrolPendingTimer)
   stopMove() // 시트가 닫히며 눌린 채 남는 이동 방지
 })
 
@@ -248,7 +249,6 @@ function onClose() {
   emit('close')
 }
 
-onBeforeUnmount(() => clearTimeout(patrolPendingTimer))
 </script>
 
 <template>
