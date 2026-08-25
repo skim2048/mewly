@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import ModalFrame from './ModalFrame.vue'
-import { authFetch } from '../composables/useFetch.js'
+import { authFetch, failureDetail } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
 import { toIsoDate } from '../composables/dates.js'
@@ -48,13 +48,13 @@ async function apply() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const data = await res.json()
-    if (data.ok) {
+    if (res.ok) {
       applied.value = true
       // 구성이 바뀐 적용이면 기준선 단절 시점을 기록한다 (회신서 §7.6)
       markPresetApplied(payload, toIsoDate())
     } else {
-      errorNote.value = `${t('ana.panel.error')}: ${data.error || ''}`
+      const detail = await failureDetail(res, '')
+      errorNote.value = `${t('ana.panel.error')}${detail ? `: ${detail}` : ''}`
     }
   } catch {
     errorNote.value = t('ana.panel.error')

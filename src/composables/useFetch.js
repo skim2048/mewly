@@ -43,3 +43,14 @@ export function authFetch(url, options = {}) {
     return res
   })
 }
+
+// @claude 실패 응답의 사유 추출. 백엔드가 오류 본문을 detail로 통일했으므로
+// @claude(회신서 §12.1) detail을 우선하고, 구 버전의 error·reason도 받아 둔다.
+export async function failureDetail(res, fallback) {
+  try {
+    const body = await res.clone().json()
+    return body?.detail || body?.error || body?.reason || fallback
+  } catch {
+    return fallback
+  }
+}

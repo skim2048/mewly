@@ -40,7 +40,8 @@ async function readCameraBody(res) {
 }
 
 function cameraErrorMessage(body, fallback) {
-  return body?.error || body?.detail || fallback
+  // detail 우선 — 백엔드가 오류 본문을 detail로 통일했다(회신서 §12.1)
+  return body?.detail || body?.error || fallback
 }
 
 async function load() {

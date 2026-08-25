@@ -21,7 +21,6 @@ const state = reactive({
   pipeline_active_for_s: null,
   pipeline_last_frame_age_s: null,
   pipeline_restart_count: 0,
-  cfg_n_frames: 0,
   // @claude Hardware
   cpu_percent: 0,
   ram_used_mb: 0,
@@ -83,7 +82,6 @@ function resetState() {
   state.pipeline_active_for_s = null
   state.pipeline_last_frame_age_s = null
   state.pipeline_restart_count = 0
-  state.cfg_n_frames = 0
   state.cpu_percent = 0
   state.ram_used_mb = 0
   state.ram_total_mb = 0

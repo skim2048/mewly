@@ -3,7 +3,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { useCamera } from '../composables/useCamera.js'
 import { useLocale } from '../composables/useLocale.js'
 import { useSSE } from '../composables/useSSE.js'
-import { authFetch } from '../composables/useFetch.js'
+import { authFetch, failureDetail } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useToast } from '../composables/useToast.js'
 import { useAnalysis } from '../composables/useAnalysis.js'
@@ -91,9 +91,9 @@ const streamingBusy = ref(false)
 async function requestStreaming(url) {
   try {
     const res = await authFetch(url, { method: 'POST' })
-    const data = await res.json()
-    if (res.ok && data.ok) return true
-    setNotice('error', t('camera.streaming.failed') + (data.error ? `: ${data.error}` : ''))
+    if (res.ok) return true
+    const detail = await failureDetail(res, '')
+    setNotice('error', t('camera.streaming.failed') + (detail ? `: ${detail}` : ''))
   } catch {
     setNotice('error', t('camera.streaming.failed'))
   }

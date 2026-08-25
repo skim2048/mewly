@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import ModalFrame from './ModalFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
 import { useAnalysis } from '../composables/useAnalysis.js'
-import { authFetch } from '../composables/useFetch.js'
+import { authFetch, failureDetail } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
 import { toIsoDate } from '../composables/dates.js'
@@ -68,8 +68,7 @@ async function apply() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prompt.value.trim(), triggers: triggers.value.trim() }),
     })
-    const data = await res.json()
-    if (data.ok) {
+    if (res.ok) {
       savedPrompt.value = prompt.value
       savedTriggers.value = triggers.value
       clearRejected()
@@ -77,7 +76,9 @@ async function apply() {
       // 프롬프트 변경은 라벨 분포를 바꾸므로 기준선 단절을 기록한다 (회신서 §10)
       markPromptApplied(prompt.value.trim(), toIsoDate())
     } else {
-      errorNote.value = t('prompt.status.error', { message: data.error || t('prompt.status.unknown') })
+      errorNote.value = t('prompt.status.error', {
+        message: await failureDetail(res, t('prompt.status.unknown')),
+      })
     }
   } catch {
     errorNote.value = t('prompt.status.failed')
