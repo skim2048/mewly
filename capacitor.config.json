@@ -3,8 +3,7 @@
   "appName": "Mewly",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http",
-    "cleartext": true
+    "androidScheme": "https"
   },
   "android": {
     "adjustMarginsForEdgeToEdge": "disable"
