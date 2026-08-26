@@ -423,6 +423,31 @@ export const messages = {
     en: 'Failed to load analysis data. Check the backend.',
     ko: '분석 데이터를 불러오지 못했습니다. 백엔드 상태를 확인하세요.',
   },
+  // @claude 추론 시작 실패 — router detail 3종의 사용자 문구(analysis-start-502.md §6.4)
+  'toast.anaStart.streaming': {
+    en: 'Cannot verify the streaming state. Try again in a moment.',
+    ko: '스트리밍 상태를 확인할 수 없습니다. 잠시 후 다시 시도하세요.',
+  },
+  'toast.anaStart.analyzer': {
+    en: 'The video analyzer is not responding. Check the device.',
+    ko: '영상 분석기가 응답하지 않습니다. 기기 상태를 확인하세요.',
+  },
+  'toast.anaStart.recorder': {
+    en: 'The event recorder is not responding. Check the device.',
+    ko: '이벤트 기록기가 응답하지 않습니다. 기기 상태를 확인하세요.',
+  },
+  'toast.anaStart.both': {
+    en: 'The analysis components are not responding. Check the device.',
+    ko: '분석 구성요소가 응답하지 않습니다. 기기 상태를 확인하세요.',
+  },
+  'toast.anaStart.network': {
+    en: 'Could not start inference: no response from the backend.',
+    ko: '추론을 시작하지 못했습니다: 백엔드 응답 없음.',
+  },
+  'toast.analysisStartFail': {
+    en: 'Could not start inference: {detail}',
+    ko: '추론을 시작하지 못했습니다: {detail}',
+  },
   'toast.patrolLock': {
     en: 'Auto patrol — manual control is locked',
     ko: '자동 순찰 중 — 수동 조작이 잠겨 있습니다',

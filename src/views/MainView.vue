@@ -38,7 +38,7 @@ const {
 const { t } = useLocale()
 const { preferredProtocol, setProtocol } = useStreamProtocol()
 const { unreadCount } = useNotifications()
-const { toast, toastIsSuccess, hideToast } = useToast()
+const { toast, toastParams, toastIsSuccess, hideToast } = useToast()
 
 // ── Layout state (시안의 계층: 탭 4개 + 오버레이 + 시트 + 모달) ──
 const activeTab = ref('home')
@@ -203,7 +203,7 @@ onMounted(() => {
     <Transition name="toast">
       <div v-if="toast" class="device-toast">
         <i :class="toastIsSuccess ? 'ph ph-check-circle' : 'ph ph-warning-circle'" class="toast-icon"></i>
-        <span class="toast-text">{{ t(`toast.${toast}`) }}</span>
+        <span class="toast-text">{{ t(`toast.${toast}`, toastParams) }}</span>
         <button class="toast-x" @click="hideToast"><i class="ph ph-x"></i></button>
       </div>
     </Transition>

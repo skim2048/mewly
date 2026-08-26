@@ -30,7 +30,7 @@ const { t, locale } = useLocale()
 
 const { accessToken } = useAuth()
 const { configured, connecting, connected, ptzEnabled, setConnected, setDisconnected, disconnect } = useCamera()
-const { analysisActive, busy: analysisBusy, toggle: toggleAnalysis } = useAnalysis()
+const { analysisActive, busy: analysisBusy, startErrorToast, toggle: toggleAnalysis } = useAnalysis()
 const { entries: inferLog } = useInferLog()
 const { vlmDot, vlmLabel, vlmKind } = useVlmStatus()
 const { startMove, stopMove } = usePtz()
@@ -117,10 +117,16 @@ async function switchModel(name) {
   modelSwitching.value = false
 }
 
-// @claude 거부되면(스트리밍 꺼짐) 사유 안내가 있는 프롬프트 모달을 연다.
+// @claude 거부되면(스트리밍 꺼짐, 409) 사유 안내가 있는 프롬프트 모달을 연다.
+// @claude 그 외 실패(502 등)는 백엔드의 detail을 토스트로 드러낸다 — 무반응 방지.
 async function onInferClick() {
   const ok = await toggleAnalysis()
-  if (!ok) emit('open-modal', 'prompt')
+  if (!ok) {
+    emit('open-modal', 'prompt')
+    return
+  }
+  const fail = startErrorToast()
+  if (fail) showToast(fail.kind, fail.params)
 }
 
 // ── 추론 로그 — 시안: 날짜가 바뀌는 지점에만 구분선(오늘 생략·어제 문구·YY-MM-DD)
