@@ -1,4 +1,4 @@
-import { computed, effectScope, reactive, readonly, watch } from 'vue'
+import { computed, effectScope, reactive, readonly, ref, watch } from 'vue'
 import network from '../../config/network.json'
 import { useAuth } from './useAuth.js'
 import { authFetch } from './useFetch.js'
@@ -7,6 +7,9 @@ import { API_ENDPOINTS, getEventsUrl } from '../endpoints.js'
 
 const state = reactive({
   uptime: '-',
+  // @claude router가 각 컴포넌트(analyzer·recorder·streamer)의 /status를 받았는지.
+  // @claude null = 스냅숏 미수신. 어휘 주입 판단(analysisConfig)이 analyzer 값을 본다.
+  monitor_sources: null,
   // @claude Inference
   infer_raw: '',
   infer_ms: 0,
@@ -63,13 +66,18 @@ const state = reactive({
   vlm_current_model: '',
 })
 
+// 수신한 스냅숏 수 — 0이면 아직 서버 상태를 모른다(기본값과 구별)
+const snapshotSeq = ref(0)
+
 let started = false
 const MAX_BACKOFF = 30000
 let eventSource = null
 let reconnectTimer = null
 let backoff = 1000
 function resetState() {
+  snapshotSeq.value = 0
   state.uptime = '-'
+  state.monitor_sources = null
   state.infer_raw = ''
   state.infer_ms = 0
   state.event_triggered = false
@@ -165,6 +173,7 @@ function openConnection(token) {
   eventSource.onmessage = (e) => {
     try {
       Object.assign(state, JSON.parse(e.data))
+      snapshotSeq.value++
     } catch {
       // @claude Malformed JSON — ignored.
     }
@@ -214,6 +223,7 @@ export function useSSE() {
   })
   return {
     state: readonlyState,
+    snapshotSeq: readonly(snapshotSeq),
     pipelineStateLabel,
     pipelineDetailLabel,
   }

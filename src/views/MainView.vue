@@ -8,6 +8,7 @@ import { useLocale } from '../composables/useLocale.js'
 import { useStreamProtocol } from '../composables/useStreamProtocol.js'
 import { useNotifications } from '../composables/useNotifications.js'
 import { useToast } from '../composables/useToast.js'
+import { ensureLabelGroupsInjected } from '../composables/analysisConfig.js'
 import ModalFrame from '../components/ModalFrame.vue'
 import HomeTab from '../components/HomeTab.vue'
 
@@ -139,6 +140,8 @@ onMounted(() => {
   loadCamera()
   // 프로필은 서버가 원본 — 실패 시 localStorage 캐시 표시로 대신한다
   loadProfile().catch(() => {})
+  // analyzer의 라벨 어휘가 비어 있으면(보드 초기화·신규 출고) 자기 어휘를 주입한다
+  ensureLabelGroupsInjected()
 })
 </script>
 

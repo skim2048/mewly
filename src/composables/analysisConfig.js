@@ -1,4 +1,10 @@
+import { effectScope, watch } from 'vue'
 import { persistentRef } from './storage.js'
+import { useSSE } from './useSSE.js'
+import { useAuth } from './useAuth.js'
+import { authFetch } from './useFetch.js'
+import { toIsoDate } from './dates.js'
+import { APP_ENDPOINTS } from '../endpoints.js'
 import analysis from '../../config/analysis.json'
 
 // @claude 2층(구조화 출력) 클라이언트 어휘 — babycat 실험 회신(analysis-reply.md)과
@@ -78,4 +84,46 @@ export function readPresetEpochDate() {
   } catch {
     return null
   }
+}
+
+// ── 어휘 존재 보장 (inference-labels-empty.md §3.3, 2026-08-27 확정) ──
+// @claude 라벨 그룹은 mewly가 소유하고 analyzer는 상태 파일에 보관만 한다.
+// @claude 보드의 data/ 삭제·신규 출고로 그 파일이 없으면 analyzer는 빈 어휘로
+// @claude 돌아 모든 추론이 무라벨이 된다(207, 08-26~27 이틀). 소유자가 존재도
+// @claude 보장한다: 스냅숏을 받은 뒤 label_groups가 비어 있으면 자기 어휘를
+// @claude 1회 주입한다. 세션당 1회만 시도하여 백엔드 무응답 시 반복 전송을
+// @claude 막고, 로그아웃 시 초기화되어 다음 접속에서 다시 판단한다.
+let ensureStarted = false
+
+export function ensureLabelGroupsInjected() {
+  if (ensureStarted) return
+  ensureStarted = true
+  effectScope(true).run(() => {
+    const { state, snapshotSeq } = useSSE()
+    const { isAuthenticated } = useAuth()
+    let attempted = false
+    watch(
+      () => [
+        isAuthenticated.value,
+        // 스냅숏을 받았고 그 안에 analyzer 상태가 실제로 있어야 「비어 있음」이 성립한다
+        snapshotSeq.value > 0 && state.monitor_sources?.analyzer === true,
+        Object.keys(state.label_groups || {}).length,
+      ],
+      async ([authed, analyzerSeen, groupCount]) => {
+        if (!authed) { attempted = false; return }
+        if (!analyzerSeen || groupCount > 0 || attempted) return
+        attempted = true
+        const payload = buildLabelsPayload()
+        try {
+          const res = await authFetch(APP_ENDPOINTS.presets, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+          // 동일 구성이면 markConfigApplied가 단절 일자를 갱신하지 않는다
+          if (res.ok) markPresetApplied(payload, toIsoDate())
+        } catch { /* 다음 접속에서 다시 판단 — 반복 전송 금지 */ }
+      },
+    )
+  })
 }
