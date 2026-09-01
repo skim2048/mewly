@@ -7,7 +7,7 @@ import { toIsoDate } from './dates.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import analysis from '../../config/analysis.json'
 
-// @claude 2층(구조화 출력) 클라이언트 어휘 — babycat 실험 회신(analysis-reply.md)과
+// @claude 2층(구조화 출력) 클라이언트 어휘 — babycat 실험 회신(docs/babycat-correspondence.md 1부)과
 // @claude 사용자 확정에 따른 값. babycat은 이 어휘를 불투명한 태그로만 취급하며,
 // @claude 부분 문자열 매치를 수행하므로 동의어는 5자 이상의 완전형만 넣는다
 // @claude (lie→believe, rest→interesting, sit→situation 오매치 방지).
@@ -86,7 +86,7 @@ export function readPresetEpochDate() {
   }
 }
 
-// ── 어휘 존재 보장 (inference-labels-empty.md §3.3, 2026-08-27 확정) ──
+// ── 어휘 존재 보장 (docs/babycat-correspondence.md 2부 §3.3, 2026-08-27 확정) ──
 // @claude 라벨 그룹은 mewly가 소유하고 analyzer는 상태 파일에 보관만 한다.
 // @claude 보드의 data/ 삭제·신규 출고로 그 파일이 없으면 analyzer는 빈 어휘로
 // @claude 돌아 모든 추론이 무라벨이 된다(207, 08-26~27 이틀). 소유자가 존재도

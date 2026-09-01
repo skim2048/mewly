@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 백엔드(게이트웨이 8000)는 사설 PKI의 HTTPS다(babycat analysis-reply.md §13.2:
+<!-- 백엔드(게이트웨이 8000)는 사설 PKI의 HTTPS다(babycat-correspondence.md 1부 §13.2:
      제조사 Root CA → 기기별 Device CA → 서버 인증서). 신뢰 경로는 두 가지다.
      - 동봉(@raw/babycat_ca): 제조사 Root CA 인증서. 이 Root CA에서 발급된
        Device CA를 가진 펫하우스는 기기 수가 늘어도 폰 쪽 설정이 없다.
