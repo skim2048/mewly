@@ -117,14 +117,11 @@ async function switchModel(name) {
   modelSwitching.value = false
 }
 
-// @claude 거부되면(스트리밍 꺼짐, 409) 사유 안내가 있는 프롬프트 모달을 연다.
-// @claude 그 외 실패(502 등)는 백엔드의 detail을 토스트로 드러낸다 — 무반응 방지.
+// @claude 시작 실패는 종류를 불문하고 토스트로 안내한다(사용자 지시 2026-08-28 —
+// @claude 프롬프트 모달을 여는 이전 동작은 폐기: 모달은 실패 맥락과 무관하다).
 async function onInferClick() {
   const ok = await toggleAnalysis()
-  if (!ok) {
-    emit('open-modal', 'prompt')
-    return
-  }
+  if (ok) return
   const fail = startErrorToast()
   if (fail) showToast(fail.kind, fail.params)
 }

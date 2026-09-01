@@ -4,14 +4,12 @@ import { authFetch, failureDetail } from './useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 
 // @claude FR-024/FR-025: saving prompt settings never starts analysis; the
-// @claude explicit start fans out to the analyzer and the recorder. FR-050:
-// @claude the router rejects a start while live streaming is inactive — the
-// @claude rejected flag routes the 사유 안내 into the prompt panel.
+// @claude explicit start fans out to the analyzer and the recorder.
 const busy = ref(false)
-const rejected = ref(false)
-// @claude 409 이외의 시작 실패 사유(백엔드 detail). 409는 rejected로 안내하고,
-// @claude 그 외(502 등)는 이 값을 토스트로 드러낸다 — 버튼이 무반응으로 보이던
-// @claude 결함(2026-08-26, 208 보드 502)의 수정.
+// @claude 시작 실패 사유. 스트리밍 비활성(로컬 판정·FR-050 409)은 'no_stream',
+// @claude 네트워크 실패는 'network', 그 외는 백엔드 detail 원문. 표시할 토스트는
+// @claude startErrorToast()가 결정한다 — 실패가 무반응으로 보이지 않게 한다
+// @claude (2026-08-26 502 결함, 2026-08-28 오버레이 대체 지시).
 const startError = ref('')
 
 export function useAnalysis() {
@@ -26,7 +24,7 @@ export function useAnalysis() {
     try {
       const res = await authFetch(APP_ENDPOINTS.analysisStart, { method: 'POST' })
       if (res.ok) return true
-      if (res.status === 409) rejected.value = true
+      if (res.status === 409) startError.value = 'no_stream'
       else startError.value = await failureDetail(res, `HTTP ${res.status}`)
       return false
     } catch {
@@ -46,12 +44,12 @@ export function useAnalysis() {
     }
   }
 
-  // @claude Returns false when the start was rejected so the caller can bring
-  // @claude the prompt panel (which shows the reason) into view.
+  // @claude Returns false on failure; the reason is in startError (see
+  // @claude startErrorToast). 스트리밍 비활성은 요청 없이 로컬에서 판정한다.
   async function toggle() {
     if (busy.value) return true
     if (!analysisActive.value && !state.streaming_active) {
-      rejected.value = true
+      startError.value = 'no_stream'
       return false
     }
     busy.value = true
@@ -60,15 +58,10 @@ export function useAnalysis() {
         await stop()
         return true
       }
-      const ok = await start()
-      return ok || !rejected.value
+      return await start()
     } finally {
       busy.value = false
     }
-  }
-
-  function clearRejected() {
-    rejected.value = false
   }
 
   // @claude 시작 실패 사유를 토스트 종류로 대응시킨다(회신서 analysis-start-502.md
@@ -77,6 +70,7 @@ export function useAnalysis() {
   function startErrorToast() {
     const detail = startError.value
     if (!detail) return null
+    if (detail === 'no_stream') return { kind: 'anaStart.noStream' }
     if (detail === 'network') return { kind: 'anaStart.network' }
     if (detail === 'cannot verify streaming state') return { kind: 'anaStart.streaming' }
     const m = detail.match(/^start not accepted by:\s*(.+)$/)
@@ -90,5 +84,5 @@ export function useAnalysis() {
     return { kind: 'analysisStartFail', params: { detail } }
   }
 
-  return { analysisActive, busy, rejected, startError, startErrorToast, toggle, start, clearRejected }
+  return { analysisActive, busy, startError, startErrorToast, toggle, start }
 }

@@ -129,10 +129,6 @@ export const messages = {
   'prompt.guard.applyAnyway': { en: 'Apply anyway', ko: '그래도 적용' },
   'prompt.status.applied': { en: 'Settings saved.', ko: '설정을 저장했습니다.' },
   'prompt.action.start': { en: 'Start', ko: '시작' },
-  'prompt.status.needStreaming': {
-    en: 'Streaming is off, so inference cannot start. Start streaming first.',
-    ko: '스트리밍이 꺼져 있어 추론을 시작할 수 없습니다. 먼저 스트리밍을 시작하세요.',
-  },
   'prompt.status.error': { en: 'Error: {message}', ko: '오류: {message}' },
   'prompt.status.unknown': { en: 'Unknown', ko: '알 수 없음' },
   'prompt.status.failed': { en: 'Apply failed', ko: '적용 실패' },
@@ -423,7 +419,11 @@ export const messages = {
     en: 'Failed to load analysis data. Check the backend.',
     ko: '분석 데이터를 불러오지 못했습니다. 백엔드 상태를 확인하세요.',
   },
-  // @claude 추론 시작 실패 — router detail 3종의 사용자 문구(analysis-start-502.md §6.4)
+  // @claude 추론 시작 실패 — 스트리밍 비활성(로컬/409) + router detail 3종(analysis-start-502.md §6.4)
+  'toast.anaStart.noStream': {
+    en: 'Cannot start inference: no camera is registered or it is off. Register a profile or turn the camera on.',
+    ko: '카메라가 등록되어 있지 않거나 꺼져 있어서 추론을 시작할 수 없습니다. 프로필을 등록하거나 카메라를 켜세요.',
+  },
   'toast.anaStart.streaming': {
     en: 'Cannot verify the streaming state. Try again in a moment.',
     ko: '스트리밍 상태를 확인할 수 없습니다. 잠시 후 다시 시도하세요.',

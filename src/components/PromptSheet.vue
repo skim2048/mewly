@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import ModalFrame from './ModalFrame.vue'
 import { useSSE } from '../composables/useSSE.js'
-import { useAnalysis } from '../composables/useAnalysis.js'
 import { authFetch, failureDetail } from '../composables/useFetch.js'
 import { APP_ENDPOINTS } from '../endpoints.js'
 import { useLocale } from '../composables/useLocale.js'
@@ -12,7 +11,6 @@ import { markPromptApplied, DAY_PROMPT } from '../composables/analysisConfig.js'
 const emit = defineEmits(['close'])
 
 const { state } = useSSE()
-const { rejected, clearRejected } = useAnalysis()
 const { t } = useLocale()
 
 const prompt = ref('')
@@ -71,7 +69,6 @@ async function apply() {
     if (res.ok) {
       savedPrompt.value = prompt.value
       savedTriggers.value = triggers.value
-      clearRejected()
       applied.value = true
       // 프롬프트 변경은 라벨 분포를 바꾸므로 기준선 단절을 기록한다 (회신서 §10)
       markPromptApplied(prompt.value.trim(), toIsoDate())
@@ -89,7 +86,6 @@ async function apply() {
 function revertAndClose() {
   prompt.value = savedPrompt.value
   triggers.value = savedTriggers.value
-  clearRejected()
   emit('close')
 }
 </script>
@@ -97,9 +93,6 @@ function revertAndClose() {
 <template>
   <ModalFrame :title="t('set.rowPrompt')" @close="revertAndClose">
     <div class="form-col">
-      <div v-if="rejected" class="notice-box">
-        <i class="ph ph-info"></i><span>{{ t('prompt.status.needStreaming') }}</span>
-      </div>
       <div v-if="errorNote" class="notice-box">
         <i class="ph ph-warning-circle"></i><span>{{ errorNote }}</span>
       </div>
